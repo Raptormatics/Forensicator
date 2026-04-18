@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forensicator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    h2 {
+      margin-top: 60px;
+      color: white;
+    }
+
+    p {
+      line-height: 1.6;
+    }
+
+    .hero {
+      text-align: center;
+      padding-top: 80px;
+    }
+
+    .tagline {
+      font-size: 20px;
+      color: #8b949e;
+    }
+
+    .buttons {
+      margin-top: 30px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 20px;
+      margin: 5px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .primary {
+      background: #238636;
+      color: white;
+    }
+
+    .secondary {
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .card {
+      background: #161b22;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #30363d;
+    }
+
+    code {
+      background: #161b22;
+      padding: 10px;
+      display: block;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 80px;
+      font-size: 14px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container hero">
+    <h1>Forensicator</h1>
+    <p class="tagline">
+      Fast, extensible digital forensics & incident analysis tool
+    </p>
+
+    <div class="buttons">
+      <a href="https://github.com/YOUR_REPO" class="btn primary">View on GitHub</a>
+      <a href="#install" class="btn secondary">Get Started</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Why Forensicator?</h2>
+    <p>
+      Analyze systems, detect anomalies, and extract forensic insights with speed.
+      Built for investigators, security teams, and researchers.
+    </p>
+
+    <div class="features">
+      <div class="card">
+        <h3>⚡ Fast Analysis</h3>
+        <p>Process system artifacts quickly with minimal setup.</p>
+      </div>
+
+      <div class="card">
+        <h3>🧠 Intelligent Detection</h3>
+        <p>Supports advanced detection logic and rule-based analysis.</p>
+      </div>
+
+      <div class="card">
+        <h3>🔌 Extensible</h3>
+        <p>Easily integrate with other tools and workflows.</p>
+      </div>
+
+      <div class="card">
+        <h3>📊 Clear Output</h3>
+        <p>Readable, structured results for investigations.</p>
+      </div>
+    </div>
+
+    <h2>Quick Example</h2>
+    <code>
+forensicator scan --target system.evtx
+    </code>
+
+    <h2 id="install">Installation</h2>
+    <code>
+git clone https://github.com/YOUR_REPO.git
+cd forensicator
+./install.sh
+    </code>
+
+    <h2>Community & Adoption</h2>
+    <p>
+      ⭐ 600+ GitHub stars <br/>
+      📺 Featured in tutorials and blogs <br/>
+      🔗 Integrated with other security tools
+    </p>
+
+    <h2>Roadmap</h2>
+    <p>
+      - Hosted version (SaaS)<br/>
+      - Advanced detection packs<br/>
+      - Team collaboration features
+    </p>
+
+    <footer>
+      Built by Raptormatics
+    </footer>
+  </div>
+
+</body>
+</html>
