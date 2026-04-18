@@ -3,173 +3,1012 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Forensicator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <title>Live Forensicator — Cross-Platform DFIR Toolkit</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: #0d1117;
-      color: #c9d1d9;
+    :root {
+      --bg:       #080b0f;
+      --surface:  #0d1219;
+      --border:   #1a2333;
+      --green:    #00ff88;
+      --green-dim:#00cc6a;
+      --amber:    #ffaa00;
+      --red:      #ff4466;
+      --blue:     #4488ff;
+      --text:     #c8d8e8;
+      --muted:    #5a7a9a;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-display: 'Syne', sans-serif;
     }
 
-    .container {
-      max-width: 1000px;
-      margin: auto;
-      padding: 40px 20px;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,136,0.012) 2px,
+        rgba(0,255,136,0.012) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Noise texture */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9998;
+      opacity: 0.5;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 56px;
+      background: rgba(8,11,15,0.9);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--muted); }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--green); }
+
+    .nav-cta {
+      background: var(--green);
+      color: #000 !important;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .nav-cta:hover { background: var(--green-dim) !important; color: #000 !important; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 20px 80px;
+      position: relative;
+      text-align: center;
+    }
+
+    /* radial glow */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(0,255,136,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(0,255,136,0.3);
+      background: rgba(0,255,136,0.06);
+      color: var(--green);
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin-bottom: 36px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .badge::before {
+      content: '';
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
     }
 
     h1 {
-      font-size: 48px;
-      margin-bottom: 10px;
-      color: white;
+      font-family: var(--font-display);
+      font-size: clamp(52px, 8vw, 96px);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -3px;
+      color: #fff;
+      margin-bottom: 12px;
+      animation: fadeUp 0.7s ease both;
     }
 
-    h2 {
-      margin-top: 60px;
-      color: white;
+    h1 .accent { color: var(--green); }
+
+    .sub-title {
+      font-family: var(--font-display);
+      font-size: clamp(16px, 2.5vw, 22px);
+      color: var(--muted);
+      font-weight: 400;
+      margin-bottom: 48px;
+      max-width: 560px;
+      animation: fadeUp 0.8s ease both;
     }
 
-    p {
-      line-height: 1.6;
+    /* Terminal window */
+    .terminal {
+      width: 100%;
+      max-width: 720px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      text-align: left;
+      margin-bottom: 48px;
+      box-shadow: 0 0 60px rgba(0,255,136,0.05), 0 20px 60px rgba(0,0,0,0.6);
+      animation: fadeUp 0.9s ease both;
     }
 
-    .hero {
+    .terminal-bar {
+      background: #111825;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+    .dot.red   { background: #ff5f57; }
+    .dot.amber { background: #febc2e; }
+    .dot.green { background: #28c840; }
+
+    .terminal-title {
+      flex: 1;
       text-align: center;
-      padding-top: 80px;
+      color: var(--muted);
+      font-size: 12px;
     }
 
-    .tagline {
-      font-size: 20px;
-      color: #8b949e;
+    .terminal-body {
+      padding: 20px 24px;
+      font-size: 13px;
+      line-height: 1.9;
     }
 
-    .buttons {
-      margin-top: 30px;
+    .t-prompt { color: var(--green); }
+    .t-cmd { color: #fff; }
+    .t-comment { color: var(--muted); }
+    .t-info { color: var(--amber); }
+    .t-success { color: var(--green); }
+    .t-section { color: var(--blue); }
+    .t-warn { color: var(--red); }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--green);
+      vertical-align: middle;
+      animation: blink 1.1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* CTA buttons */
+    .cta-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 1s ease both;
     }
 
     .btn {
-      display: inline-block;
-      padding: 12px 20px;
-      margin: 5px;
-      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 26px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
       text-decoration: none;
-      font-weight: 500;
+      transition: all .2s;
+      cursor: pointer;
+      border: none;
     }
 
-    .primary {
-      background: #238636;
-      color: white;
+    .btn-primary {
+      background: var(--green);
+      color: #000;
     }
 
-    .secondary {
-      border: 1px solid #30363d;
-      color: #c9d1d9;
+    .btn-primary:hover {
+      background: var(--green-dim);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,255,136,0.25);
     }
 
-    .features {
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--green);
+      color: var(--green);
+      transform: translateY(-1px);
+    }
+
+    /* STATS */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      padding: 48px 20px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .stat { text-align: center; }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .stat-num span { color: var(--green); }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* SECTION */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 100px 24px;
+    }
+
+    .section-tag {
+      color: var(--green);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.05;
+      margin-bottom: 20px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      max-width: 500px;
+      font-size: 14px;
+      margin-bottom: 64px;
+    }
+
+    /* Platform grid */
+    .platform-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-top: 30px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
     }
 
-    .card {
-      background: #161b22;
-      padding: 20px;
+    @media (max-width: 768px) {
+      .platform-grid { grid-template-columns: 1fr; }
+    }
+
+    .platform-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 10px;
-      border: 1px solid #30363d;
+      padding: 28px;
+      transition: border-color .2s, transform .2s;
     }
 
-    code {
-      background: #161b22;
-      padding: 10px;
+    .platform-card:hover {
+      border-color: var(--green);
+      transform: translateY(-3px);
+    }
+
+    .platform-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+
+    .platform-name {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .platform-lang {
+      color: var(--green);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      font-weight: 600;
+    }
+
+    .platform-desc {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      background: rgba(0,255,136,0.08);
+      border: 1px solid rgba(0,255,136,0.2);
+      color: var(--green);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+
+    /* Features */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 28px 24px;
+      transition: border-color .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card:hover { border-color: rgba(0,255,136,0.3); }
+
+    .feature-icon {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    /* Usage section */
+    .usage-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .usage-grid { grid-template-columns: 1fr; }
+    }
+
+    .usage-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .usage-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .usage-num {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 600;
+      padding-top: 2px;
+      min-width: 24px;
+    }
+
+    .usage-text {
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .usage-text strong { color: #fff; font-weight: 600; }
+
+    code.block {
       display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 8px;
+      padding: 20px 22px;
+      font-size: 12.5px;
+      line-height: 2;
       overflow-x: auto;
     }
 
-    footer {
+    code.block .c { color: var(--muted); }
+    code.block .g { color: var(--green); }
+    code.block .w { color: #fff; }
+    code.block .a { color: var(--amber); }
+
+    /* Roadmap */
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .roadmap-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+
+    .roadmap-status {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .status-done { color: var(--green); }
+    .status-wip  { color: var(--amber); }
+    .status-plan { color: var(--muted); }
+
+    .roadmap-title {
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .roadmap-desc {
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+
+    /* CTA section */
+    .cta-section {
       text-align: center;
-      margin-top: 80px;
-      font-size: 14px;
-      color: #8b949e;
+      padding: 100px 24px;
+      position: relative;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 300px;
+      background: radial-gradient(ellipse, rgba(0,255,136,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 { margin-bottom: 16px; }
+
+    .cta-section p {
+      color: var(--muted);
+      margin-bottom: 40px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--green); }
+
+    .footer-links { display: flex; gap: 24px; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Version badge */
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(68,136,255,0.1);
+      border: 1px solid rgba(68,136,255,0.3);
+      color: var(--blue);
+      padding: 3px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      margin-left: 12px;
+      vertical-align: middle;
     }
   </style>
 </head>
 <body>
 
-  <div class="container hero">
-    <h1>Forensicator</h1>
-    <p class="tagline">
-      Fast, extensible digital forensics & incident analysis tool
-    </p>
+<nav>
+  <a href="#" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <ul class="nav-links">
+    <li><a href="#platforms">Platforms</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="https://github.com/Johnng007/Live-Forensicator" class="nav-cta">GitHub ↗</a></li>
+  </ul>
+</nav>
 
-    <div class="buttons">
-      <a href="https://github.com/YOUR_REPO" class="btn primary">View on GitHub</a>
-      <a href="#install" class="btn secondary">Get Started</a>
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">v4.1.1 — Sigma Rule Support Now Live</div>
+
+  <h1>Live<br><span class="accent">Forensicator</span></h1>
+  <p class="sub-title">Cross-platform DFIR toolkit for fast, structured incident response — Windows, Linux & macOS.</p>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="dot red"></div>
+      <div class="dot amber"></div>
+      <div class="dot green"></div>
+      <span class="terminal-title">forensicator — PowerShell — 80×24</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="t-comment"># Clone and run — it's that simple</span></div>
+      <div><span class="t-prompt">PS C:\Investigations&gt;</span> <span class="t-cmd">git clone https://github.com/Johnng007/Live-Forensicator.git</span></div>
+      <div><span class="t-prompt">PS C:\Investigations&gt;</span> <span class="t-cmd">cd Live-Forensicator\Windows</span></div>
+      <div><span class="t-prompt">PS C:\Investigations&gt;</span> <span class="t-cmd">.\Forensicator.ps1 -EVTX EVTX -RAM RAM -PCAP PCAP</span></div>
+      <br>
+      <div><span class="t-success">✔</span> <span class="t-info">[FORENSICATOR v4.1.1]</span> Starting investigation...</div>
+      <div><span class="t-success">✔</span> <span class="t-section">[USER ACCOUNTS]</span> Collected 12 entries</div>
+      <div><span class="t-success">✔</span> <span class="t-section">[EVENT LOG ANALYSIS]</span> Querying suspicious activity IDs...</div>
+      <div><span class="t-warn">!</span> <span class="t-section">[HASH CHECK]</span> Malicious executable match found → malware_loader.exe</div>
+      <div><span class="t-success">✔</span> <span class="t-section">[BROWSER HISTORY]</span> IOC URL detected in Chrome history</div>
+      <div><span class="t-success">✔</span> <span class="t-section">[SIGMA RULES]</span> 3 rules triggered</div>
+      <div><span class="t-success">✔</span> Report written → <span class="t-info">DESKTOP-J7KX2\index.html</span></div>
+      <div><span class="t-prompt">PS C:\Investigations&gt;</span> <span class="cursor"></span></div>
     </div>
   </div>
 
-  <div class="container">
-    <h2>Why Forensicator?</h2>
-    <p>
-      Analyze systems, detect anomalies, and extract forensic insights with speed.
-      Built for investigators, security teams, and researchers.
-    </p>
+  <div class="cta-row">
+    <a href="https://github.com/Johnng007/Live-Forensicator" class="btn btn-primary">
+      ⭐ Star on GitHub
+    </a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/releases" class="btn btn-secondary">
+      ↓ Download v4.1.1
+    </a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/wiki" class="btn btn-secondary">
+      📖 Documentation
+    </a>
+  </div>
+</div>
 
-    <div class="features">
-      <div class="card">
-        <h3>⚡ Fast Analysis</h3>
-        <p>Process system artifacts quickly with minimal setup.</p>
-      </div>
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">616<span>+</span></div>
+    <div class="stat-label">GitHub Stars</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">90<span>+</span></div>
+    <div class="stat-label">Forks</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">3</div>
+    <div class="stat-label">Platforms</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">4<span>.1</span></div>
+    <div class="stat-label">Latest Version</div>
+  </div>
+</div>
 
-      <div class="card">
-        <h3>🧠 Intelligent Detection</h3>
-        <p>Supports advanced detection logic and rule-based analysis.</p>
-      </div>
+<hr class="divider">
 
-      <div class="card">
-        <h3>🔌 Extensible</h3>
-        <p>Easily integrate with other tools and workflows.</p>
-      </div>
+<!-- PLATFORMS -->
+<section id="platforms">
+  <div class="section-tag">// 01 — Platforms</div>
+  <h2 class="reveal">One toolkit.<br>Every OS.</h2>
+  <p class="section-sub reveal">Whether you're responding to an incident on a Windows server, a hardened Linux box, or a macOS endpoint — Forensicator has you covered.</p>
 
-      <div class="card">
-        <h3>📊 Clear Output</h3>
-        <p>Readable, structured results for investigations.</p>
+  <div class="platform-grid reveal">
+    <div class="platform-card">
+      <div class="platform-icon">🪟</div>
+      <div class="platform-name">Windows</div>
+      <div class="platform-lang">PowerShell</div>
+      <p class="platform-desc">The flagship module. Full event log analysis, malware hash checks, IOC-matched browser history, RAM capture, PCAP tracing, and HTML report generation.</p>
+      <div class="chip-row">
+        <span class="chip">Event Logs</span>
+        <span class="chip">Hash Check</span>
+        <span class="chip">RAM Capture</span>
+        <span class="chip">Sigma Rules</span>
+        <span class="chip">BitLocker</span>
       </div>
     </div>
 
-    <h2>Quick Example</h2>
-    <code>
-forensicator scan --target system.evtx
-    </code>
+    <div class="platform-card">
+      <div class="platform-icon">🐧</div>
+      <div class="platform-name">Linux</div>
+      <div class="platform-lang">Bash</div>
+      <p class="platform-desc">Written for maximum cross-distro compatibility using native OS commands only — no net-tools dependency. Malicious executable and shell command detection included.</p>
+      <div class="chip-row">
+        <span class="chip">Native Commands</span>
+        <span class="chip">Malicious Exec</span>
+        <span class="chip">Shell Cmd Check</span>
+        <span class="chip">Cross-distro</span>
+      </div>
+    </div>
 
-    <h2 id="install">Installation</h2>
-    <code>
-git clone https://github.com/YOUR_REPO.git
-cd forensicator
-./install.sh
-    </code>
-
-    <h2>Community & Adoption</h2>
-    <p>
-      ⭐ 600+ GitHub stars <br/>
-      📺 Featured in tutorials and blogs <br/>
-      🔗 Integrated with other security tools
-    </p>
-
-    <h2>Roadmap</h2>
-    <p>
-      - Hosted version (SaaS)<br/>
-      - Advanced detection packs<br/>
-      - Team collaboration features
-    </p>
-
-    <footer>
-      Built by Raptormatics
-    </footer>
+    <div class="platform-card">
+      <div class="platform-icon">🍎</div>
+      <div class="platform-name">macOS</div>
+      <div class="platform-lang">Shell Script</div>
+      <p class="platform-desc">Shell-based live forensics for Apple endpoints. Collects system artifacts, user activity, and network state with structured HTML output.</p>
+      <div class="chip-row">
+        <span class="chip">Shell Script</span>
+        <span class="chip">System Artifacts</span>
+        <span class="chip">HTML Output</span>
+        <span class="chip">Network State</span>
+      </div>
+    </div>
   </div>
+</section>
 
+<hr class="divider">
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-tag">// 02 — Capabilities</div>
+  <h2 class="reveal">What Forensicator<br>pulls for you.</h2>
+  <p class="section-sub reveal">From volatile memory to browser history, every artifact matters in an investigation.</p>
+
+  <div class="feature-grid reveal">
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <div class="feature-title">Event Log Analysis</div>
+      <p class="feature-desc">Queries Windows Event Logs for specific IDs linked to logon events, object access, process execution, and suspicious PowerShell commands.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🦠</div>
+      <div class="feature-title">Malware Hash Detection</div>
+      <p class="feature-desc">Matches hashes of executables on disk against abuse.ch and public malicious hash databases to flag compromised binaries automatically.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🌐</div>
+      <div class="feature-title">Browser History + IOC Match</div>
+      <p class="feature-desc">Extracts browsing history from Chrome, Firefox, Edge, and IE — then cross-references URLs against known IOC lists for immediate threat detection.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">📡</div>
+      <div class="feature-title">PCAP Network Tracing</div>
+      <p class="feature-desc">Captures 120 seconds of live network traffic and converts it to PCAP format via etl2pcapng — ready for Wireshark analysis.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <div class="feature-title">RAM Acquisition</div>
+      <p class="feature-desc">Integrates with WinPmem to take a full memory dump alongside your standard collection — critical for malware-in-memory investigations.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Sigma Rule Support</div>
+      <p class="feature-desc">New in v4.1.1 — Forensicator now evaluates collected artifacts against Sigma detection rules, the industry standard for SIEM-agnostic detection.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">Artifact Encryption</div>
+      <p class="feature-desc">AES-encrypt collected artifacts immediately after acquisition to maintain evidentiary integrity and secure chain of custody.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Structured HTML Reports</div>
+      <p class="feature-desc">Output is a searchable, filterable HTML report with per-check tables. Export any section to Excel, PDF, or print — directly from the browser.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">Ransomware Extension Scan</div>
+      <p class="feature-desc">Recursively searches the filesystem for files matching known ransomware extensions — invaluable when your alert is a potential encryption event.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- USAGE -->
+<section id="usage">
+  <div class="section-tag">// 03 — Usage</div>
+  <h2 class="reveal">Up and running<br>in seconds.</h2>
+  <p class="section-sub reveal">No bloated agent to install. Clone, execute with elevated privileges, get a report.</p>
+
+  <div class="usage-grid reveal">
+    <div>
+      <ul class="usage-list">
+        <li class="usage-item">
+          <span class="usage-num">01</span>
+          <span class="usage-text"><strong>Clone the repo</strong> to the target machine or a trusted USB.</span>
+        </li>
+        <li class="usage-item">
+          <span class="usage-num">02</span>
+          <span class="usage-text"><strong>Run as Administrator</strong> (Windows) or root (Linux/macOS) for full artifact access.</span>
+        </li>
+        <li class="usage-item">
+          <span class="usage-num">03</span>
+          <span class="usage-text"><strong>Pass your flags</strong> — mix and match EVTX, RAM, PCAP, BROWSER, LOG4J, and more.</span>
+        </li>
+        <li class="usage-item">
+          <span class="usage-num">04</span>
+          <span class="usage-text"><strong>Open index.html</strong> from the output directory — your full investigation report is ready.</span>
+        </li>
+        <li class="usage-item">
+          <span class="usage-num">05</span>
+          <span class="usage-text"><strong>Optionally encrypt</strong> the artifact folder with <code>-ENCRYPTED ENCRYPTED</code> before transport.</span>
+        </li>
+      </ul>
+    </div>
+
+    <code class="block">
+<span class="c"># --- Windows (PowerShell) ---</span>
+
+<span class="c"># Basic run</span>
+<span class="g">.\Forensicator.ps1</span>
+
+<span class="c"># Full deep-dive</span>
+<span class="g">.\Forensicator.ps1</span> <span class="a">-EVTX EVTX -RAM RAM -PCAP PCAP \
+  -BROWSER BROWSER -WEBLOGS WEBLOGS</span>
+
+<span class="c"># Unattended mode (for automation)</span>
+<span class="g">.\Forensicator.ps1</span> <span class="a">-OPERATOR "Jane Doe" -CASE IR-2026-001</span>
+
+<span class="c"># --- Linux / macOS ---</span>
+
+<span class="g">chmod +x Forensicator.sh</span>
+<span class="g">sudo ./Forensicator.sh</span>
+
+<span class="c"># Windows binary (double-click or CLI)</span>
+<span class="g">.\Forensicator.exe</span>
+    </code>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="section-tag">// 04 — Roadmap</div>
+  <h2 class="reveal">What's next.</h2>
+  <p class="section-sub reveal">Forensicator is actively maintained and growing. Here's what's on the horizon.</p>
+
+  <div class="roadmap-grid reveal">
+    <div class="roadmap-card">
+      <div class="roadmap-status status-done">✔ Shipped — v4.1.1</div>
+      <div class="roadmap-title">Sigma Rule Support</div>
+      <p class="roadmap-desc">Industry-standard detection rules now evaluated against collected artifacts automatically.</p>
+    </div>
+
+    <div class="roadmap-card">
+      <div class="roadmap-status status-done">✔ Shipped — v4.1.1</div>
+      <div class="roadmap-title">BitLocker Key Collection</div>
+      <p class="roadmap-desc">BitLocker recovery keys harvested during acquisition for encrypted drive analysis.</p>
+    </div>
+
+    <div class="roadmap-card">
+      <div class="roadmap-status status-wip">⟳ In Progress</div>
+      <div class="roadmap-title">Advanced Detection Packs</div>
+      <p class="roadmap-desc">Curated, community-maintained packs for APT groups, ransomware families, and insider threat patterns.</p>
+    </div>
+
+    <div class="roadmap-card">
+      <div class="roadmap-status status-plan">◌ Planned</div>
+      <div class="roadmap-title">Hosted SaaS Platform</div>
+      <p class="roadmap-desc">A web-based interface to upload, parse, and collaborate on Forensicator reports without local tooling.</p>
+    </div>
+
+    <div class="roadmap-card">
+      <div class="roadmap-status status-plan">◌ Planned</div>
+      <div class="roadmap-title">Team Collaboration</div>
+      <p class="roadmap-desc">Shared investigations, annotation, and case handoff features for multi-analyst teams.</p>
+    </div>
+
+    <div class="roadmap-card">
+      <div class="roadmap-status status-plan">◌ Planned</div>
+      <div class="roadmap-title">SIEM Export</div>
+      <p class="roadmap-desc">Direct output to Splunk, Elastic, and Microsoft Sentinel for integration into existing pipelines.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="section-tag">// Get Forensicator</div>
+  <h2>Start your<br>investigation now.</h2>
+  <p>Free, open-source, and actively maintained. Part of the Black Widow Toolbox by Raptormatics.</p>
+  <div class="cta-row">
+    <a href="https://github.com/Johnng007/Live-Forensicator" class="btn btn-primary">⭐ View on GitHub</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/releases" class="btn btn-secondary">↓ Latest Release</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/wiki" class="btn btn-secondary">📖 Wiki</a>
+  </div>
+</div>
+
+<footer>
+  <div>
+    Built by <a href="https://github.com/Johnng007" target="_blank">Raptormatics</a> &nbsp;·&nbsp;
+    Part of the <strong>Black Widow Toolbox</strong>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Johnng007/Live-Forensicator" target="_blank">GitHub</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/wiki" target="_blank">Wiki</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/releases" target="_blank">Releases</a>
+    <a href="https://github.com/Johnng007/Anteater" target="_blank">Anteater →</a>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
 </body>
 </html>
