@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Changelog — Live Forensicator</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:           #080b0f;
+      --surface:      #0d1219;
+      --surface2:     #111825;
+      --border:       #1a2333;
+      --green:        #00ff88;
+      --green-dim:    #00cc6a;
+      --amber:        #ffaa00;
+      --red:          #ff4466;
+      --blue:         #4488ff;
+      --purple:       #aa66ff;
+      --text:         #c8d8e8;
+      --muted:        #5a7a9a;
+      --font-mono:    'JetBrains Mono', monospace;
+      --font-display: 'Syne', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Scanline */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.012) 2px,rgba(0,255,136,0.012) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 56px;
+      background: rgba(8,11,15,0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--muted); }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--green); }
+    .nav-links a.active { color: var(--green); }
+    .nav-cta {
+      background: var(--green);
+      color: #000 !important;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .nav-cta:hover { background: var(--green-dim) !important; }
+
+    /* Hamburger */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px;
+      background: none;
+      border: none;
+      z-index: 200;
+    }
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all .3s;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-links.mobile-open { display: flex !important; }
+
+    /* PAGE */
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 110px 24px 100px;
+    }
+
+    /* Back link */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12.5px;
+      margin-bottom: 48px;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--green); }
+
+    /* Page header */
+    .page-tag {
+      color: var(--green);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .page-title {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 14px;
+    }
+    .page-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 520px;
+      margin-bottom: 64px;
+    }
+
+    /* FILTER BAR */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      transition: all .2s;
+    }
+    .filter-btn:hover { border-color: var(--green); color: var(--green); }
+    .filter-btn.active { background: rgba(0,255,136,0.1); border-color: var(--green); color: var(--green); }
+    .filter-btn.hide { display: none; }
+
+    /* RELEASE ENTRY */
+    .release {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 0 40px;
+      margin-bottom: 64px;
+      position: relative;
+    }
+
+    /* Vertical timeline line */
+    .release::before {
+      content: '';
+      position: absolute;
+      left: 199px;
+      top: 10px;
+      bottom: -64px;
+      width: 1px;
+      background: var(--border);
+    }
+    .release:last-child::before { display: none; }
+
+    .release-meta {
+      text-align: right;
+      padding-right: 32px;
+      padding-top: 2px;
+      position: relative;
+    }
+
+    /* timeline dot */
+    .release-meta::after {
+      content: '';
+      position: absolute;
+      right: -5px;
+      top: 9px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      border: 2px solid var(--bg);
+      box-shadow: 0 0 0 1px var(--green);
+    }
+
+    .release-version {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .release-date {
+      color: var(--muted);
+      font-size: 11.5px;
+      margin-bottom: 8px;
+    }
+
+    .release-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .badge-latest  { background: rgba(0,255,136,0.12);  color: var(--green);  border: 1px solid rgba(0,255,136,0.3); }
+    .badge-minor   { background: rgba(68,136,255,0.10); color: var(--blue);   border: 1px solid rgba(68,136,255,0.3); }
+    .badge-patch   { background: rgba(255,170,0,0.10);  color: var(--amber);  border: 1px solid rgba(255,170,0,0.3); }
+    .badge-major   { background: rgba(170,102,255,0.10);color: var(--purple); border: 1px solid rgba(170,102,255,0.3); }
+
+    /* Release body */
+    .release-body { min-width: 0; }
+
+    .release-summary {
+      color: var(--text);
+      font-size: 13.5px;
+      line-height: 1.75;
+      margin-bottom: 20px;
+    }
+
+    /* Change groups */
+    .change-group { margin-bottom: 18px; }
+
+    .change-group-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .change-group-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .label-new      { color: var(--green); }
+    .label-improved { color: var(--blue); }
+    .label-fixed    { color: var(--amber); }
+    .label-security { color: var(--red); }
+    .label-removed  { color: var(--muted); }
+    .label-platform { color: var(--purple); }
+
+    .change-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+
+    .change-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .change-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+    .dot-new      { background: var(--green); }
+    .dot-improved { background: var(--blue); }
+    .dot-fixed    { background: var(--amber); }
+    .dot-security { background: var(--red); }
+    .dot-removed  { background: var(--muted); }
+    .dot-platform { background: var(--purple); }
+
+    .change-item code {
+      background: rgba(0,255,136,0.07);
+      border: 1px solid rgba(0,255,136,0.15);
+      color: var(--green);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11.5px;
+    }
+
+    /* Divider */
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    footer a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    footer a:hover { color: var(--green); }
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+
+    /* Hidden by filter */
+    .release.hidden { display: none; }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .page-wrap { animation: fadeUp 0.5s ease both; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: fixed;
+        top: 56px;
+        left: 0; right: 0; bottom: 0;
+        background: rgba(8,11,15,0.98);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        z-index: 99;
+        border-top: 1px solid var(--border);
+      }
+      .nav-links a { font-size: 16px; }
+
+      .page-wrap { padding: 90px 16px 80px; }
+
+      .release {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .release::before { display: none; }
+      .release-meta {
+        text-align: left;
+        padding-right: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+      }
+      .release-meta::after { display: none; }
+      .release-version { font-size: 17px; margin-bottom: 0; }
+      .release-date { margin-bottom: 0; }
+
+      footer { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html#platforms">Platforms</a></li>
+    <li><a href="index.html#features">Features</a></li>
+    <li><a href="index.html#usage">Usage</a></li>
+    <li><a href="index.html#roadmap">Roadmap</a></li>
+    <li><a href="walkthrough.html">Walkthrough</a></li>
+    <li><a href="changelog.html" class="active">Changelog</a></li>
+    <li><a href="https://github.com/Johnng007/Live-Forensicator" class="nav-cta">GitHub ↗</a></li>
+  </ul>
+</nav>
+
+<div class="page-wrap">
+
+  <a href="index.html" class="back-link">← Back to Home</a>
+
+  <!-- Header -->
+  <div class="page-tag">// Release History</div>
+  <h1 class="page-title">Changelog</h1>
+  <p class="page-subtitle">Every release, every change — from the first commit to the latest drop. Follow along as Forensicator grows.</p>
+
+  <!-- Filter bar -->
+  <div class="filter-bar" id="filterBar">
+    <button class="filter-btn active" data-filter="all">All Releases</button>
+    <button class="filter-btn" data-filter="major">Major</button>
+    <button class="filter-btn" data-filter="minor">Minor</button>
+    <button class="filter-btn" data-filter="patch">Patch</button>
+  </div>
+
+    <!-- ═══════════════════════════════════════════════════
+       v4.1.3
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="latest">
+    <div class="release-meta">
+      <div class="release-version">v4.1.3</div>
+      <div class="release-date">May 2026</div>
+      <span class="release-badge badge-latest">Latest</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        This release introduces several new features and improvements, enhancing the overall functionality and performance of Forensicator.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>New Dashboard for better user experience.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added new configuration options for enhanced customization.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Overall Sigma Rule detection is improved and configuration options added.</li>
+          <li class="change-item"><span class="change-dot dot-improved"></span>Core code optimizations for improved performance.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-fixed">✔ Fixed</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-fixed"></span>Failing Sigma rule evaluation under certain conditions.</li>
+          <li class="change-item"><span class="change-dot dot-fixed"></span>Some malformed tables.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+    <!-- ═══════════════════════════════════════════════════
+       v4.1.2
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="minor">
+    <div class="release-meta">
+      <div class="release-version">v4.1.2</div>
+      <div class="release-date">April 2026</div>
+      <span class="release-badge badge-minor">Minor</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        This release added the Forensicator Insights feature with Mitre Mapping.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Added Forensicator Insights with Mitre Mapping.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Sigma Rule Support improved.</li>
+          <li class="change-item"><span class="change-dot dot-improved"></span>Script Readability improved.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       v4.1.1
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="major">
+    <div class="release-meta">
+      <div class="release-version">v4.1.1</div>
+      <div class="release-date">March 2026</div>
+      <span class="release-badge badge-major">Major</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Flagship release bringing Sigma rule evaluation directly into the collection pipeline, plus BitLocker key harvesting, expanded IOC coverage, and a raft of reliability fixes across all three platforms.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Sigma rule support.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Malware hash updates (abuse.ch).</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Script execution logging.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>BitLocker key collection.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added malicious executable check for Linux.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added malicious shell commands check for Linux.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Encryption/Decryption.</li>
+          <li class="change-item"><span class="change-dot dot-improved"></span>Browser history & IOC detection.</li>
+          <li class="change-item"><span class="change-dot dot-improved"></span>Updated to modern commands.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-fixed">✔ Fixed</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-fixed"></span>Fixed some carriage return errors in Linux.</li>
+          <li class="change-item"><span class="change-dot dot-fixed"></span>Fixed report title encoding issue when <code>-TITLE</code> contains special characters.</li>
+          <li class="change-item"><span class="change-dot dot-fixed"></span>Fixed <code>-WEBLOGS</code> path detection failing on non-default IIS log locations.</li>
+          <li class="change-item"><span class="change-dot dot-fixed"></span>Linux: fixed false-positive malicious command detections triggered by legitimate package manager strings.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       v4.0.2
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="minor">
+    <div class="release-meta">
+      <div class="release-version">v4.0.2</div>
+      <div class="release-date">August 2024</div>
+      <span class="release-badge badge-minor">Minor</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Made some minor bug fix changes.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Added hash check for malware detection.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added a notification when Forensicator is not running as admin.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Minor Bug Fixes.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+    <!-- ═══════════════════════════════════════════════════
+       v4.0.1
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="minor">
+    <div class="release-meta">
+      <div class="release-version">v4.0.1</div>
+      <div class="release-date">June 2024</div>
+      <span class="release-badge badge-minor">Minor</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Made some minor bug fix changes.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Adjusted Static file references to adapt to the new Forensicator Github structure.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Created Forensicator for Linux machines.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Re-arranged the Directory to show that Forensicator has moved from just a PowerShell tool to a suite of tools.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       v4.0.0
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="major">
+    <div class="release-meta">
+      <div class="release-version">v4.0.0</div>
+      <div class="release-date">February 2024</div>
+      <span class="release-badge badge-major">Major</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Optimized Dashboard experience.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Ability to search individual checks in a table from the HTML output.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Ability to export each check to Excel, pdf, or print. from the HTML output.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>A new visually stunning HTML output.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added RDP logon History (Outgoing & Incoming).</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Changed the config file from config.yml to config.json so the script can use default PowerShell JSON manipulation.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-platform">● Platform</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-platform"></span>General Code Improvement and Standardization.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>The Output HTML File has been improved greatly.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       v3.3.2
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="minor">
+    <div class="release-meta">
+      <div class="release-version">v3.3.2</div>
+      <div class="release-date">May 2023</div>
+      <span class="release-badge badge-minor">Minor</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Minor Bug Fixes.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Added config.yml to handle malicious file names, executable names, and PowerShell commands.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Fixed Windows Defender warning while running Forensicator.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       v3.3.1
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="minor">
+    <div class="release-meta">
+      <div class="release-version">v3.3.1</div>
+      <div class="release-date">February 2023</div>
+      <span class="release-badge badge-minor">Minor</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Minor Bug Fixes.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Added Eventlog Analysis for {Logon Events, Object Access, Process Execution & Suspicious Activities}.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added auto-checking for updates.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Updated The UI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+    <!-- ═══════════════════════════════════════════════════
+       v3.2.1
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="minor">
+    <div class="release-meta">
+      <div class="release-version">v3.2.1</div>
+      <div class="release-date">June 2022</div>
+      <span class="release-badge badge-minor">Minor</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Minor Bug Fixes.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Added EventLog Analysis.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-improved">▲ Improved</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-improved"></span>Updated The UI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       v3.1.0
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="major">
+    <div class="release-meta">
+      <div class="release-version">v3.1.0</div>
+      <div class="release-date">May 2022</div>
+      <span class="release-badge badge-major">Major</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Added New Features and Improvements.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-new">✦ New</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-new"></span>Moved all the Binary Helpers to a folder..</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added an inbuilt powershell-based browser history extractor.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added a flag for calling the Nirsoft-based browser history extractor in case you need a robust extraction.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Added a usage switch to show usage options.</li>
+          <li class="change-item"><span class="change-dot dot-new"></span>Browser history extraction (<code>-BROWSER</code>) introduced for Chrome, Firefox, and IE on Windows.</li>
+        </ul>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label label-removed">✖ Removed</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-removed"></span>Minor Bug fixes..</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       v2.0
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="major">
+    <div class="release-meta">
+      <div class="release-version">v2.0</div>
+      <div class="release-date">April 2023</div>
+      <span class="release-badge badge-major">Legacy</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Introduced Artifact Encryption and Decryption.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-platform">● Highlights</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-platform"></span>Minor Bug Fixes.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>Added the possibility of encrypting the Artifact after acquiring it to maintain integrity.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+    <!-- ═══════════════════════════════════════════════════
+       v1.x
+  ════════════════════════════════════════════════════ -->
+  <div class="release" data-type="major">
+    <div class="release-meta">
+      <div class="release-version">v1.x</div>
+      <div class="release-date">2022</div>
+      <span class="release-badge badge-major">Legacy</span>
+    </div>
+    <div class="release-body">
+      <p class="release-summary">
+        Windows-only PowerShell toolkit. Monolithic script collecting system info, user accounts, network state, processes, startup persistence, and scheduled tasks with plain-text output.
+      </p>
+
+      <div class="change-group">
+        <div class="change-group-label label-platform">● Highlights</div>
+        <ul class="change-list">
+          <li class="change-item"><span class="change-dot dot-platform"></span>Added Ability to perform network tracing using netsh trace, the subsequent et1 is converted to pcapng.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>Minor Bug Fixes in Script Update.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>Added Weblogs as an option parameter.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>Added a feature to check for files that have similar extensions with known ransomware-encrypted files.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>You can now check for updates within the script.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>UI update.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>Added unattended Mode Feature.</li>
+          <li class="change-item"><span class="change-dot dot-platform"></span>Added Ability to grab the browsing history of all users.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    Built by <a href="https://github.com/Johnng007" target="_blank"><strong>Raptormatics</strong></a>
+    &nbsp;·&nbsp; (c) <strong>2026 Forensicator</strong>
+  </div>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="walkthrough.html">Walkthrough</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator" target="_blank">GitHub</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/releases" target="_blank">Releases</a>
+    <a href="https://github.com/Johnng007/Anteater" target="_blank">Anteater →</a>
+  </div>
+</footer>
+
+<script>
+  // Hamburger
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('open');
+    navLinks.classList.toggle('mobile-open');
+  });
+  navLinks.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      hamburger.classList.remove('open');
+      navLinks.classList.remove('mobile-open');
+    });
+  });
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const filter = btn.dataset.filter;
+      document.querySelectorAll('.release').forEach(release => {
+        if (filter === 'all' || release.dataset.type === filter) {
+          release.classList.remove('hidden');
+        } else {
+          release.classList.add('hidden');
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Walkthrough — Live Forensicator</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:            #080b0f;
+      --surface:       #0d1219;
+      --surface2:      #111825;
+      --border:        #1a2333;
+      --green:         #00ff88;
+      --green-dim:     #00cc6a;
+      --amber:         #ffaa00;
+      --red:           #ff4466;
+      --blue:          #4488ff;
+      --text:          #c8d8e8;
+      --muted:         #5a7a9a;
+      --font-mono:     'JetBrains Mono', monospace;
+      --font-display:  'Syne', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Scanline */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.012) 2px,rgba(0,255,136,0.012) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 56px;
+      background: rgba(8,11,15,0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--muted); }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--green); }
+    .nav-links a.active { color: var(--green); }
+
+    .nav-cta {
+      background: var(--green);
+      color: #000 !important;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .nav-cta:hover { background: var(--green-dim) !important; }
+
+    /* Hamburger */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px;
+      background: none;
+      border: none;
+      z-index: 200;
+    }
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all .3s;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-links.mobile-open { display: flex !important; }
+
+    /* LAYOUT */
+    .page-wrap {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-top: 56px;
+      min-height: 100vh;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      position: sticky;
+      top: 56px;
+      height: calc(100vh - 56px);
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      padding: 36px 24px;
+    }
+
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .sidebar-label {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 24px;
+    }
+    .sidebar-label:first-child { margin-top: 0; }
+
+    .sidebar nav ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sidebar nav a {
+      display: block;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12.5px;
+      padding: 5px 10px;
+      border-radius: 5px;
+      transition: all .15s;
+      border-left: 2px solid transparent;
+    }
+    .sidebar nav a:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+    }
+    .sidebar nav a.active {
+      color: var(--green);
+      border-left-color: var(--green);
+      background: rgba(0,255,136,0.06);
+    }
+
+    /* CONTENT */
+    .content {
+      padding: 56px 60px 100px;
+      min-width: 0;
+    }
+
+    /* Page header */
+    .page-header {
+      margin-bottom: 56px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page-tag {
+      color: var(--green);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .page-title {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.05;
+      margin-bottom: 14px;
+    }
+
+    .page-subtitle {
+      color: var(--muted);
+      max-width: 560px;
+      font-size: 14px;
+    }
+
+    /* Sections */
+    .doc-section {
+      margin-bottom: 80px;
+      scroll-margin-top: 80px;
+    }
+
+    .doc-section h2 {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.8px;
+      margin-bottom: 6px;
+    }
+
+    .doc-section .section-tag {
+      color: var(--green);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .doc-section p,
+    .doc-section li {
+      color: var(--text);
+      font-size: 13.5px;
+      line-height: 1.8;
+    }
+
+    .doc-section p { margin-bottom: 16px; }
+
+    .doc-section ul, .doc-section ol {
+      padding-left: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .doc-section h3 {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: #e0eaf5;
+      margin-bottom: 10px;
+      margin-top: 32px;
+    }
+
+    .doc-section h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--amber);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      margin-top: 24px;
+    }
+
+    /* Code blocks */
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .code-header {
+      background: var(--surface2);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .code-lang {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .code-copy {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .code-copy:hover { border-color: var(--green); color: var(--green); }
+    .code-copy.copied { border-color: var(--green); color: var(--green); }
+
+    pre {
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-size: 12.5px;
+      line-height: 1.9;
+      margin: 0;
+    }
+
+    pre .g  { color: var(--green); }
+    pre .a  { color: var(--amber); }
+    pre .r  { color: var(--red); }
+    pre .b  { color: var(--blue); }
+    pre .c  { color: var(--muted); }
+    pre .w  { color: #fff; }
+    pre .t  { color: var(--text); }
+
+    /* Callouts */
+    .callout {
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .callout.info    { background: rgba(68,136,255,0.08); border: 1px solid rgba(68,136,255,0.25); color: #a0c0f0; }
+    .callout.warning { background: rgba(255,170,0,0.08);  border: 1px solid rgba(255,170,0,0.25);  color: #f0c060; }
+    .callout.danger  { background: rgba(255,68,102,0.08); border: 1px solid rgba(255,68,102,0.25); color: #f08090; }
+    .callout.tip     { background: rgba(0,255,136,0.06);  border: 1px solid rgba(0,255,136,0.2);   color: #80d8b0; }
+
+    /* Flag table */
+    .flag-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-bottom: 24px;
+    }
+    .flag-table th {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--surface2);
+    }
+    .flag-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(26,35,51,0.6);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+    .flag-table tr:last-child td { border-bottom: none; }
+    .flag-table tr:hover td { background: rgba(255,255,255,0.015); }
+    .flag-table .flag-name  { color: var(--green); font-weight: 600; white-space: nowrap; }
+    .flag-table .flag-type  { color: var(--amber); font-size: 11px; }
+    .flag-table .flag-desc  { color: var(--text); }
+    .flag-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+
+    /* Step cards */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 24px;
+      bottom: 24px;
+      width: 1px;
+      background: var(--border);
+    }
+    .step {
+      display: flex;
+      gap: 20px;
+      padding: 0 0 28px 0;
+      position: relative;
+      z-index: 1;
+    }
+    .step:last-child { padding-bottom: 0; }
+    .step-num {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-body { flex: 1; padding-top: 8px; }
+    .step-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .step-desc { color: var(--text); font-size: 13px; line-height: 1.7; }
+
+    /* Output preview card */
+    .output-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .output-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 18px 14px;
+    }
+    .output-card .oc-icon { font-size: 20px; margin-bottom: 8px; }
+    .output-card .oc-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .output-card .oc-desc  { color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+    /* Platform tabs */
+    .tab-bar {
+      display: flex;
+      gap: 2px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .tab {
+      padding: 9px 18px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all .2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--green); border-bottom-color: var(--green); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* inline code */
+    code {
+      background: rgba(0,255,136,0.07);
+      border: 1px solid rgba(0,255,136,0.15);
+      color: var(--green);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+    }
+
+    /* hr */
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 0 56px 0;
+    }
+
+    /* Back link */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12.5px;
+      margin-bottom: 32px;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--green); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .page-wrap {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+      .content {
+        padding: 40px 20px 80px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .hamburger { display: flex; }
+      .nav-links {
+        display: none;
+        position: fixed;
+        top: 56px;
+        left: 0; right: 0; bottom: 0;
+        background: rgba(8,11,15,0.98);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        z-index: 99;
+        border-top: 1px solid var(--border);
+      }
+      .nav-links a { font-size: 16px; }
+      .flag-table { font-size: 11.5px; }
+      .flag-table .flag-name { white-space: normal; }
+      .tab-bar { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html#platforms">Platforms</a></li>
+    <li><a href="index.html#features">Features</a></li>
+    <li><a href="index.html#usage">Usage</a></li>
+    <li><a href="index.html#roadmap">Roadmap</a></li>
+    <li><a href="walkthrough.html" class="active">Walkthrough</a></li>
+    <li><a href="changelog.html">Changelog</a></li>
+    <li><a href="https://github.com/Johnng007/Live-Forensicator" class="nav-cta">GitHub ↗</a></li>
+  </ul>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Getting Started</div>
+    <nav>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-label">Windows</div>
+    <nav>
+      <ul>
+        <li><a href="#win-basic">Basic Run</a></li>
+        <li><a href="#win-flags">All Flags</a></li>
+        <li><a href="#win-examples">Examples</a></li>
+        <li><a href="#win-sigma">Sigma Rules</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-label">Linux</div>
+    <nav>
+      <ul>
+        <li><a href="#linux-basic">Basic Run</a></li>
+        <li><a href="#linux-flags">Flags</a></li>
+        <li><a href="#linux-examples">Examples</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-label">macOS</div>
+    <nav>
+      <ul>
+        <li><a href="#mac-basic">Basic Run</a></li>
+        <li><a href="#mac-examples">Examples</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-label">Output</div>
+    <nav>
+      <ul>
+        <li><a href="#output-report">HTML Report</a></li>
+        <li><a href="#output-artifacts">Artifact Folder</a></li>
+        <li><a href="#output-encryption">Encryption</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-label">Advanced</div>
+    <nav>
+      <ul>
+        <li><a href="#advanced-unattended">Unattended Mode</a></li>
+        <li><a href="#advanced-exe">Windows EXE</a></li>
+        <li><a href="#advanced-tips">Tips & Tricks</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+    <a href="index.html" class="back-link">← Back to Home</a>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <div class="page-tag">// Detailed Usage Walkthrough</div>
+      <h1 class="page-title">Tool Usage<br>Guide</h1>
+      <p class="page-subtitle">Everything you need to go from clone to full forensic report — on any platform.</p>
+    </div>
+
+    <!-- ─────────────────────── PREREQUISITES ─────────────────────── -->
+    <section class="doc-section" id="prerequisites">
+      <div class="section-tag">// Getting Started</div>
+      <h2>Prerequisites</h2>
+      <p>Before running Forensicator, make sure the target machine meets these requirements:</p>
+
+      <div class="tab-bar">
+        <button class="tab active" data-tab="pre-win">Windows</button>
+        <button class="tab" data-tab="pre-linux">Linux</button>
+        <button class="tab" data-tab="pre-mac">macOS</button>
+      </div>
+
+      <div class="tab-panel active" id="pre-win">
+        <ul>
+          <li>Windows 7 / Server 2008 R2 or later</li>
+          <li>PowerShell 5.1 or later</li>
+          <li>Administrator privileges (mandatory for full artifact access)</li>
+          <li><strong>Optional —</strong> <a href="https://github.com/Velocidex/WinPmem/releases" target="_blank" style="color:var(--green)">WinPmem</a> in the Forensicator-Share directory for RAM capture</li>
+          <li><strong>Optional —</strong> <a href="https://github.com/microsoft/etl2pcapng/releases" target="_blank" style="color:var(--green)">etl2pcapng</a> in the Forensicator-Share directory for PCAP conversion</li>
+          <li><strong>Optional —</strong> <a href="https://github.com/Johnng007/Live-Forensicator/tree/main/Windows/Forensicator-Share/rules" target="_blank" style="color:var(--green)">SigmaRules</a> in the Forensicator-Share directory for Malicious Activity Detection</li>
+          <li><strong>Optional —</strong> <a href="https://sqlite.org/download.html" target="_blank" style="color:var(--green)">SQLLite3</a> in the Forensicator-Share directory for Browsing History Extraction</li>
+        </ul>
+        <div class="callout warning" style="margin-top:16px">
+          <span class="callout-icon">⚠️</span>
+          <div>PowerShell execution policy must allow script execution. Run <code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code> in your elevated session if needed.</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="pre-linux">
+        <ul>
+          <li>Any major Linux distribution (Debian, Ubuntu, RHEL, CentOS, Arch, Alpine tested)</li>
+          <li>Bash 4.0 or later</li>
+          <li>Root privileges (run with <code>sudo</code>)</li>
+          <li>Only standard OS tools used — no external dependencies required</li>
+        </ul>
+        <div class="callout tip" style="margin-top:16px">
+          <span class="callout-icon">💡</span>
+          <div>Forensicator deliberately avoids <code>net-tools</code> and other deprecated packages so it works across all modern distributions out of the box.</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="pre-mac">
+        <ul>
+          <li>macOS 10.15 Catalina or later</li>
+          <li>Bash or Zsh (default shell on modern macOS)</li>
+          <li>Root / sudo privileges</li>
+          <li>Full Disk Access granted to Terminal in <strong>System Settings → Privacy & Security</strong></li>
+        </ul>
+        <div class="callout warning" style="margin-top:16px">
+          <span class="callout-icon">⚠️</span>
+          <div>macOS SIP (System Integrity Protection) may restrict access to some system paths. Disabling SIP is not recommended in a production environment — Forensicator will collect what's accessible.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── INSTALLATION ─────────────────────── -->
+    <section class="doc-section" id="installation">
+      <div class="section-tag">// Getting Started</div>
+      <h2>Installation</h2>
+      <p>Forensicator requires no installation. Clone or download the repository to the target system or a trusted USB drive.</p>
+
+      <h3>Option 1 — Git Clone (Recommended)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Bash / PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">git clone</span> <span class="t">https://github.com/Johnng007/Live-Forensicator.git</span>
+<span class="g">cd</span> <span class="t">Live-Forensicator</span></pre>
+      </div>
+
+      <h3>Option 2 — Direct Download</h3>
+      <p>Download the latest release ZIP from the <a href="https://github.com/Johnng007/Live-Forensicator/releases" target="_blank" style="color:var(--green)">Releases page</a>, extract it, and navigate to the appropriate platform folder.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Folder Structure</span></div>
+        <pre><span class="g">Live-Forensicator/</span>
+<span class="t">├── Windows/</span>
+<span class="t">│   ├── Forensicator.ps1           </span><span class="c"># Main PowerShell script</span>
+<span class="t">│   ├── Forensicator-Share/        </span><span class="c"># Contains optional tools and resources</span>
+<span class="t">│   └── README.md</span>
+<span class="t">│   └── config.json                </span><span class="c"># Forensicator's configuration file</span>
+<span class="t">│   └── forensicator-runtime.js    </span><span class="c"># Forensicator's dashboarding runtime file</span>
+<span class="t">│   └── version.txt                </span><span class="c"># Forensicator's version file</span>
+<span class="t">├── Linux/</span>
+<span class="t">│   ├── Forensicator.sh            </span><span class="c"># Main Bash script</span>
+<span class="t">│   └── README.md</span>
+<span class="t">└── macOS/</span>
+<span class="t">    ├── Forensicator.sh            </span><span class="c"># Main Shell script</span>
+<span class="t">    └── README.md</span></pre>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>For live incident response, copy the relevant platform folder to a write-protected USB drive so you can deploy it on any machine without internet access.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── WINDOWS BASIC ─────────────────────── -->
+    <section class="doc-section" id="win-basic">
+      <div class="section-tag">// Windows</div>
+      <h2>Windows — Basic Run</h2>
+      <p>Navigate to the <code>Windows/</code> directory and run the script with Administrator privileges.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Open an elevated PowerShell window</div>
+            <div class="step-desc">Right-click the Start menu → <strong>Windows PowerShell (Admin)</strong> or <strong>Terminal (Admin)</strong>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Navigate to the Windows folder</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="b">cd</span> <span class="t">C:\Path\To\Live-Forensicator\Windows</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Run the script</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="g">.\Forensicator.ps1</span></pre>
+            </div>
+            <div class="step-desc" style="margin-top:8px">Without flags, Forensicator runs a standard collection covering system information, user accounts, network state, processes, startup items, scheduled tasks and malicious activity check.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Review the output</div>
+            <div class="step-desc">A folder named after the computer name (e.g., <code>DESKTOP-J7KX2\</code>) is created in the same directory. Open <code>index.html</code> inside it with any browser.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── WINDOWS FLAGS ─────────────────────── -->
+    <section class="doc-section" id="win-flags">
+      <div class="section-tag">// Windows</div>
+      <h2>Windows — All Flags</h2>
+      <p>Forensicator flags are <strong>additive</strong> — combine as many as your investigation requires. Each flag activates one additional collection or analysis module.</p>
+
+      <div class="flag-wrap">
+        <table class="flag-table">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Value</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">-VERSION</td>
+              <td class="flag-type">VERSION</td>
+              <td class="flag-desc">Display the current version of Forensicator.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-UPDATE</td>
+              <td class="flag-type">UPDATE</td>
+              <td class="flag-desc">Check for updates and updates to the latest version of Forensicator.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-EVTX</td>
+              <td class="flag-type">EVTX</td>
+              <td class="flag-desc">Export windows event logs to EVTX files. This can be useful if you want to analyze the logs with external tools or preserve them for future reference.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-RAM</td>
+              <td class="flag-type">RAM</td>
+              <td class="flag-desc">Acquire a full physical memory dump using WinPmem. Requires <code>winpmem_mini_x64_rc2.exe</code> or <code>winpmem_mini_x86_rc2.exe</code> to be present in the script directory.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-PCAP</td>
+              <td class="flag-type">PCAP</td>
+              <td class="flag-desc">Capture 120 seconds of live network traffic using <code>netsh trace</code>, then convert it to a standard PCAP file via etl2pcapng for Wireshark analysis.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-WEBLOGS</td>
+              <td class="flag-type">WEBLOGS</td>
+              <td class="flag-desc">Collect IIS web server access logs so you can scan or review them for exploitation patterns including directory traversal, SQL injection attempts, and web shell access.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-LOG4J</td>
+              <td class="flag-type">LOG4J</td>
+              <td class="flag-desc">Scan application logs and JAR files for indicators of Log4Shell (CVE-2021-44228) exploitation attempts including JNDI lookup strings.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-RANSOMWARE</td>
+              <td class="flag-type">RANSOMWARE</td>
+              <td class="flag-desc">Run a scan for ransomware indicators and suspicious file activity and name patterns.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-HASHCHECK</td>
+              <td class="flag-type">HASHCHECK</td>
+              <td class="flag-desc">Run a hash check against known malicious file hashes to identify potential threats.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-ENCRYPTED</td>
+              <td class="flag-type">ENCRYPTED</td>
+              <td class="flag-desc">AES-encrypt the entire artifact output folder after collection completes. You will be prompted for a passphrase. Useful for secure chain-of-custody transport.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-DECRYPTED</td>
+              <td class="flag-type">DECRYPTED</td>
+              <td class="flag-desc">AES-decrypt a copy of an encrypted artifact file. You will be prompted for a passphrase.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-OPERATOR</td>
+              <td class="flag-type">"Your Name"</td>
+              <td class="flag-desc">Embed the analyst's name in the report header for documentation purposes. Use quotes for names with spaces.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-CASE</td>
+              <td class="flag-type">"ID"</td>
+              <td class="flag-desc">Embed a case or incident reference number in the report header (e.g., <code>IR-2026-001</code>).</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-TITLE</td>
+              <td class="flag-type">"Title"</td>
+              <td class="flag-desc">Set a custom title for the HTML report — useful for distinguishing reports across multiple machines in a multi-host investigation.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-LOCATION</td>
+              <td class="flag-type">"LOCATION"</td>
+              <td class="flag-desc">Set the physical location of the investigation — useful for legal and regulatory purposes.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-DEVICE</td>
+              <td class="flag-type">"DEVICE"</td>
+              <td class="flag-desc">Set the device name or identifier for the investigation — useful for distinguishing reports across multiple machines in a multi-host investigation.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>Most flags accept the same value as their name (e.g., <code>-EVTX EVTX</code>, <code>-RAM RAM</code>). This is intentional — the flag name acts as a toggle.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── WINDOWS EXAMPLES ─────────────────────── -->
+    <section class="doc-section" id="win-examples">
+      <div class="section-tag">// Windows</div>
+      <h2>Windows — Examples</h2>
+
+      <h3>Quickstart (standard collection)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">.\Forensicator.ps1</span></pre>
+      </div>
+
+      <h3>Full investigation with RAM, PCAP, and Event Logs</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">.\Forensicator.ps1</span> <span class="a">-EVTX EVTX -RAM RAM -PCAP PCAP</span></pre>
+      </div>
+
+      <h3>Ransomware & Hashcheck</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">.\Forensicator.ps1</span> <span class="a">-RANSOMEWARE RANSOMWARE -HASHCHECK HASHCHECK</span></pre>
+      </div>
+
+      <h3>Web server compromise</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">.\Forensicator.ps1</span> <span class="a">-WEBLOGS WEBLOGS -LOG4J LOG4J</span></pre>
+      </div>
+
+      <h3>Encrypted collection for legal/case handoff</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">.\Forensicator.ps1</span> <span class="a">-ENCRYPTED ENCRYPTED</span></pre>
+      </div>
+
+      <h3>Maximum deep-dive (all modules)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">.\Forensicator.ps1</span> <span class="a">-EVTX EVTX -RAM RAM -PCAP PCAP -RANSOMWARE RANSOMWARE -HASHCHECK HASHCHECK -WEBLOGS WEBLOGS -LOG4J LOG4J</span></pre>
+      </div>
+
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>The <code>-RAM</code> flag pauses execution for the duration of the memory dump (size depends on installed RAM). The <code>-PCAP</code> flag pauses for 120 seconds while capturing traffic. Plan accordingly for time-sensitive engagements.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── SIGMA RULES ─────────────────────── -->
+    <section class="doc-section" id="win-sigma">
+      <div class="section-tag">// Windows — New in v4.1.1</div>
+      <h2>Sigma Rule Support</h2>
+      <p>Sigma is the industry-standard, SIEM-agnostic detection language. Forensicator v4.1.1 bundles a curated Sigma rule set and evaluates machine's eventlogs against them automatically.</p>
+
+      <h3>How it works</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Ran by default</div>
+            <div class="step-desc">When <code>.\forensicator.ps1</code> is run with or without flags.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Rules are evaluated</div>
+            <div class="step-desc">Each bundled Sigma rules are parsed and its conditions are matched against the windows event logs in realtime.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Matches are reported</div>
+            <div class="step-desc">Triggered rules appear in the HTML report under the <strong>Sigma Rules</strong> and also the <strong>Detections</strong> section with rule name, severity, MITRE ATT&CK technique, and the matching log entry.</div>
+          </div>
+        </div>
+      </div>
+
+      <h4>Usage</h4>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c"># Sigma requires EVTX collection to have data to evaluate against</span>
+<span class="g">.\Forensicator.ps1</span> <span class="a"></span></pre>
+      </div>
+
+      <h4>Custom Configurations</h4>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c"># The configuration file allows customization of Sigma rule evaluation</span>
+<span class="g">config.json</span>
+
+  "sigma": {
+    "days_back": 7,               <span class="c"># Set this to how far back in days to evaluate logs</span>
+    "min_level": "medium",        <span class="c"># Minimum severity level to report (low, medium, high)</span>
+    "enable_sysmon": false,       <span class="c"># Set to true if you have Sysmon logs and want to include them in Sigma evaluation</span>
+    "include_source_ids": [],     <span class="c"># List of Event Log source IDs to include (e.g., ["sysmon_process_creation"]) default is all</span>
+    "exclude_source_ids": [],     <span class="c"># List of Event Log source IDs to exclude default is none</span>
+    "include_log_names": [],      <span class="c"># List of Event Log names to include (e.g., ["Microsoft-Windows-Sysmon/Operational"]) default is all</span>
+    "exclude_log_names": [],      <span class="c"># List of Event Log names to exclude default is none</span>
+    "include_categories": [],     <span class="c"># List of Event Log categories to include (e.g., ["process_creation"]) default is all</span>
+    "exclude_categories": []      <span class="c"># List of Event Log categories to exclude default is none</span>
+  }
+
+<span class="a"></span></pre>
+      </div>
+
+      <h4>Adding custom rules</h4>
+      <p>We are working on an easier way to allow for custom <code>.JSON</code> rule files in the <code>Forensicator-Share\rules\</code> directory so Forensicator will automatically pick them up.</p>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>The <a href="https://github.com/SigmaHQ/sigma" target="_blank" style="color:var(--green)">SigmaHQ repository</a> contains thousands of community-maintained rules. We actively collect these rules and convert them to the way Forensicator can parse them cleanly.</div>
+        <div>The Sigma runs can take several days to complete so by default we have set in the <code>config.json</code> file to skip sysmon logs and limit the days back to 7days. You are free to enable sysmon logs and adjust the days back as needed.</div> 
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── LINUX BASIC ─────────────────────── -->
+    <section class="doc-section" id="linux-basic">
+      <div class="section-tag">// Linux</div>
+      <h2>Linux — Basic Run</h2>
+      <p>The Linux module is a single Bash script with no external dependencies. It uses only native OS commands, making it compatible with any distribution.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Navigate to the Linux folder</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">Bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="g">cd</span> <span class="t">Live-Forensicator/Linux</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Make the script executable</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">Bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="g">chmod +x</span> <span class="t">Forensicator.sh</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Run as root</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">Bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="g">sudo ./Forensicator.sh</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Review the output folder</div>
+            <div class="step-desc">An output directory is created in the current path. Open <code>index.html</code> in a browser to view the full report.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── LINUX FLAGS ─────────────────────── -->
+    <section class="doc-section" id="linux-flags">
+      <div class="section-tag">// Linux</div>
+      <h2>Linux — Flags</h2>
+
+      <div class="flag-wrap">
+        <table class="flag-table">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Value</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="flag-name">-operator</td>
+              <td class="flag-type">"Name"</td>
+              <td class="flag-desc">Analyst name to embed in the report header.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-case</td>
+              <td class="flag-type">"ID"</td>
+              <td class="flag-desc">Incident or case reference number for documentation.</td>
+            </tr>
+            <tr>
+              <td class="flag-name">-title</td>
+              <td class="flag-type">"Title"</td>
+              <td class="flag-desc">Custom title for the HTML report.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The Linux module runs a comprehensive collection by default, covering:</p>
+      <ul>
+        <li>System information (kernel, uptime, hardware)</li>
+        <li>User accounts, groups, sudoers, and login history</li>
+        <li>Running processes and open files (lsof)</li>
+        <li>Network interfaces, active connections, and listening ports</li>
+        <li>Scheduled jobs (cron, at, systemd timers)</li>
+        <li>Installed packages and recently modified files</li>
+        <li>Syslog, auth log, and bash history artifacts</li>
+        <li>Malicious executable pattern detection</li>
+        <li>Suspicious shell command history scanning</li>
+      </ul>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── LINUX EXAMPLES ─────────────────────── -->
+    <section class="doc-section" id="linux-examples">
+      <div class="section-tag">// Linux</div>
+      <h2>Linux — Examples</h2>
+
+      <h3>Basic run</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">sudo ./Forensicator.sh</span></pre>
+      </div>
+
+      <h3>Documented run with case metadata</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">sudo ./Forensicator.sh</span> <span class="a">-operator "Alice Smith" -case "IR-2026-003" -title "Web Server Intrusion"</span></pre>
+      </div>
+
+      <h3>Pipe output to a log file for triage</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">sudo ./Forensicator.sh</span> <span class="t">2>&1 | tee forensicator-run.log</span></pre>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── macOS ─────────────────────── -->
+    <section class="doc-section" id="mac-basic">
+      <div class="section-tag">// macOS</div>
+      <h2>macOS — Basic Run</h2>
+      <p>The macOS module follows the same pattern as the Linux version — a single shell script, root required, no external dependencies.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Open Terminal and navigate</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">zsh / bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="g">cd</span> <span class="t">~/Live-Forensicator/macOS</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Make executable and run</div>
+            <div class="code-block" style="margin-top:10px">
+              <div class="code-header"><span class="code-lang">zsh / bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+              <pre><span class="g">chmod +x</span> <span class="t">Forensicator.sh</span>
+<span class="g">sudo ./Forensicator.sh</span></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Grant Full Disk Access if prompted</div>
+            <div class="step-desc">macOS may restrict access to certain directories. Go to <strong>System Settings → Privacy & Security → Full Disk Access</strong> and enable access for Terminal.</div>
+          </div>
+        </div>
+      </div>
+
+      <p>The macOS module collects: system info, users and groups, network state, running processes, launch agents/daemons, shell history, installed applications, and recent file activity.</p>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── macOS EXAMPLES ─────────────────────── -->
+    <section class="doc-section" id="mac-examples">
+      <div class="section-tag">// macOS</div>
+      <h2>macOS — Examples</h2>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">zsh / bash</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c"># Basic run</span>
+<span class="g">sudo ./Forensicator.sh</span>
+
+<span class="c"># With case metadata</span>
+<span class="g">sudo ./Forensicator.sh</span> <span class="a">-operator "Bob Jones" -case "MAC-IR-001"</span></pre>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── OUTPUT REPORT ─────────────────────── -->
+    <section class="doc-section" id="output-report">
+      <div class="section-tag">// Output</div>
+      <h2>The HTML Report</h2>
+      <p>The primary output is a self-contained <code>index.html</code> report — no server needed, just open it in any browser.</p>
+
+      <div class="output-grid">
+        <div class="output-card">
+          <div class="oc-icon">📋</div>
+          <div class="oc-title">Summary Dashboard</div>
+          <div class="oc-desc">Report header with case metadata, machine details, collection timestamp, and analyst name, detection summary.</div>
+        </div>
+        <div class="output-card">
+          <div class="oc-icon">🔍</div>
+          <div class="oc-title">Searchable Tables</div>
+          <div class="oc-desc">Every collection result is presented in a filterable, sortable table. Search across all sections instantly.</div>
+        </div>
+        <div class="output-card">
+          <div class="oc-icon">⚡</div>
+          <div class="oc-title">Sigma Detections</div>
+          <div class="oc-desc">Rule matches highlighted with severity level, MITRE technique ID, and the triggering log entry.</div>
+        </div>
+        <div class="output-card">
+          <div class="oc-icon">🦠</div>
+          <div class="oc-title">Hash Hits</div>
+          <div class="oc-desc">Executables matching malicious hash databases are flagged in red with the malware family name if available.</div>
+        </div>
+        <div class="output-card">
+          <div class="oc-icon">🌐</div>
+          <div class="oc-title">IOC Browser Hits</div>
+          <div class="oc-desc">URLs in browser history matching known IOCs are highlighted with the threat category.</div>
+        </div>
+        <div class="output-card">
+          <div class="oc-icon">📤</div>
+          <div class="oc-title">Export Options</div>
+          <div class="oc-desc">Each table section can be exported to CSV/Excel or printed — built in, no plugins needed.</div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>The complete HTML report can be printed or saved as PDF for easy sharing via email or secure file transfer — no supporting files needed.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── ARTIFACT FOLDER ─────────────────────── -->
+    <section class="doc-section" id="output-artifacts">
+      <div class="section-tag">// Output</div>
+      <h2>Artifact Folder Structure</h2>
+      <p>Alongside the HTML report, Forensicator saves raw artifact files in the same output folder for deeper analysis.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Output Folder (Windows example)</span></div>
+        <pre><span class="g">DESKTOP-J7KX2\</span>
+<span class="t">├── index.html                          </span><span class="c"># Main report</span>
+<span class="t">├── forensicator-runtime.js             </span><span class="c"># The dashboard rendering helper file</span>
+<span class="t">├── SigmaFindings.csv                   </span><span class="c"># Sigma rule matches as a csv file - Helpful for further analysis</span>
+<span class="t">├── RAM\                                </span><span class="c"># Contains RAM dump (if -RAM)</span>
+<span class="t">├── PCAP\                               </span><span class="c"># Network capture (if -PCAP)</span>
+<span class="t">├── HashMatches\                        </span><span class="c"># Contains hash matches (if -HASHCHECK)</span>
+<span class="t">├── GroupPolicy\                        </span><span class="c"># Contains Group Policy artifacts (if Joined to a Domain)</span>
+<span class="t">├── EVTX\                               </span><span class="c"># Contains event log files (if -EVTX)</span>
+<span class="t">├── IISLogs\                            </span><span class="c"># IIS logs (if -IIS)</span>
+<span class="t">├── TomCatLogs\                         </span><span class="c"># Tomcat logs (if -TOMCAT)</span>
+<span class="t">└── LOG4J\                              </span><span class="c"># Log4j logs (if -LOG4J)</span>
+        </pre>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── ENCRYPTION ─────────────────────── -->
+    <section class="doc-section" id="output-encryption">
+      <div class="section-tag">// Output</div>
+      <h2>Artifact Encryption</h2>
+      <p>Use the <code>-ENCRYPTED ENCRYPTED</code> flag to AES-encrypt the entire output folder before transport. This maintains chain of custody and protects sensitive data.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="g">.\Forensicator.ps1</span> <span class="a">-ENCRYPTED ENCRYPTED</span></pre>
+      </div>
+
+      <p>You will be prompted to enter and confirm a passphrase. The output folder is then first zipped before  being encrypted into a single <code>.forensicator</code> file. </p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell (decrypt)</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c"># Decryption is possible with the same copy of forensicator.ps1</span>
+<span class="g">.\forensicator.ps1</span> <span class="a">-DECRYPTED DECRYPTED ".\DESKTOP-J7KX2.forensicator"</span></pre>
+      </div>
+
+      <div class="callout danger">
+        <span class="callout-icon">🔐</span>
+        <div>Store your passphrase securely. The artifacts cannot be recovered without it. For legal proceedings, document the passphrase using your organisation's evidence handling procedures.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── UNATTENDED ─────────────────────── -->
+    <section class="doc-section" id="advanced-unattended">
+      <div class="section-tag">// Advanced</div>
+      <h2>Unattended / Automated Mode</h2>
+      <p>For mass deployment or SOAR integration, Forensicator can run fully unattended by providing all parameters at invocation time.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell — Example deployment script</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c"># Deploy via PSExec or RMM to a remote host</span>
+<span class="b">$machines</span> = <span class="t">@("SRV-WEB-01", "SRV-DB-02", "WKSTN-055")</span>
+
+<span class="b">foreach</span> (<span class="b">$machine</span> in <span class="b">$machines</span>) {
+    <span class="g">Invoke-Command</span> <span class="a">-ComputerName</span> <span class="b">$machine</span> <span class="a">-ScriptBlock</span> {
+        <span class="g">.\Forensicator.ps1</span> <span class="a">-EVTX EVTX `
+          -OPERATOR "SOC-Automation" -CASE "IR-2026-SWEEP" -LOCATION "Data Center" -DEVICE $machine -TITLE "Investigation Sweep"</span>
+    }
+}</pre>
+      </div>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>Avoid using <code>-RAM</code> and <code>-PCAP</code> in unattended sweeps — they block execution for several minutes per host. Use them for targeted deep-dives on specific machines of interest.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ─────────────────────── LOGGING ─────────────────────── -->
+    <section class="doc-section" id="advanced-logging">
+      <div class="section-tag">// Logging</div>
+      <h2>Script Execution Logging</h2>
+      <p>All Forensicator activities are logged in a very rich way, logs can be found inside <code>LOGS\</code> folder in the root of the<code>Windows\</code> it contains detailed information about each module's execution, errors, and other relevant events.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">CMD / PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c">Log files are named like below</span>
+<span class="g">HostName_YY-MM-DD_HH-MM-SS.log               </span> <span class="a">Contains raw log of the terminal execution output</span>
+<span class="g">HostName_YY-MM-DD_HH-MM-SS_findings_only.csv </span> <span class="a">Contains a csv of all findings only - Useful for SIEM ingestion</span>
+<span class="g">HostName_YY-MM-DD_HH-MM-SS_structured.csv    </span> <span class="a">Contains CSV output of all terminal output (including findings) - Useful for SIEM ingestion</span>
+<span class="g">HostName_YY-MM-DD_HH-MM-SS_structured.json   </span> <span class="a">Contains structured JSON output of all findings - Useful for SIEM ingestion</span></pre>
+      </div>
+
+      <p>The logging system is designed to provide comprehensive insights into the script's execution, making it easier to troubleshoot issues and analyze results.</p>
+
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>The csv and JSON log files are designed to be ingested into SIEM systems for further analysis.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+
+    <!-- ─────────────────────── IOC ─────────────────────── -->
+    <section class="doc-section" id="advanced-ioc">
+      <div class="section-tag">// IOC</div>
+      <h2>Indicators of Compromise (IOC) Files</h2>
+      <p>Forensicator during execution will attempt to fetch IOC Files (e.g., malware hashes, malicious IPs/URLs) from threat intel repos <code>abuse.ch</code> and drop them in the <code>Forensicator-Share\</code> these are then used to match hashes and browsing history URLs.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c"># The configuration file allows customization of Sigma rule evaluation</span>
+<span class="g">config.json</span>
+
+  "hash_source": [
+    "https://bazaar.abuse.ch/export/txt/md5/recent/"
+  ],
+    "url_source": [
+    "https://urlhaus.abuse.ch/downloads/text_recent/"
+  ],
+
+<span class="a"></span></pre>
+      </div>
+
+      <p>You can change these sources in the <code>config.json</code> file to point to different threat intelligence feeds.</p>
+
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>The downloaded IOC files are text files with data separated by newlines.</div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+
+    <!-- ─────────────────────── TIPS ─────────────────────── -->
+    <section class="doc-section" id="advanced-tips">
+      <div class="section-tag">// Advanced</div>
+      <h2>Tips & Tricks</h2>
+
+      <h3>Run from a USB</h3>
+      <p>If you wish to further minimize the risk of contaminating your forensic environment, you can run Forensicator from a USB drive.</p>
+
+      <h3>Speeding up repeated runs</h3>
+      <p>During active engagements where you run Forensicator multiple times, you may skip <code>-RAM</code> and <code>-PCAP</code> on repeat runs — they can be time-consuming and the data is unlikely to change significantly between runs. You can also set <code>net_capture_duration</code> in the <code>config.json</code> file — the default is 120s.</p>
+
+      <h3>Parsing the output programmatically</h3>
+      <p>All CSV artifact files in the output folder follow a consistent column structure. You can ingest them directly into Excel, Splunk, Elastic, or a Python/PowerShell pipeline for further correlation.</p>
+      <p>All CSV and JSON log files in the <code>LOGS\</code> folder follow a consistent column structure. You can ingest them directly into Excel, Splunk, Elastic, or a Python/PowerShell pipeline for further correlation.</p>
+
+      <h3>Multi-host correlation</h3>
+      <p>Use the <code>-CASE</code> flag with the same case ID across all machines in an investigation. This makes it easy to correlate timestamps and findings across multiple HTML reports.</p>
+
+      <h3>Keeping IOC's and Rules up to date</h3>
+      <p>The IOC files automatically update on execution with the latest data if the files are missing in the <code>Forensicator-Share</code> folder or if the files are out of date. For Sigma rules, you can manually update them using the following commands:</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Bash / PowerShell — update rule pack</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="c"># Pull latest rules from SigmaHQ</span>
+<span class="g">git clone </span> <span class="t">https://github.com/Johnng007/Live-Forensicator </span>
+
+<span class="c"># Copy Windows rules</span>
+<span class="g">cp -r</span> <span class="t">New_Clone\Live-Forensicator\Windows\Forensicator-Share\rules\windows\sigma\* Current_Copy\Live-Forensicator\Windows\Forensicator-Share\rules\windows\sigma</span></pre>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Star the <a href="https://github.com/Johnng007/Live-Forensicator" target="_blank" style="color:var(--green)">GitHub repo</a> to get notified of new releases. Forensicator is actively maintained and new detection capabilities are added regularly.</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer style="border-top:1px solid var(--border); padding: 28px 40px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; color:var(--muted); font-size:12px;">
+  <div>Built by <a href="https://github.com/Johnng007" target="_blank" style="color:var(--muted); text-decoration:none;"><strong>Raptormatics</strong></a> &nbsp;·&nbsp; (c) <strong>2026 Forensicator</strong></div>
+  <div style="display:flex; gap:24px; flex-wrap:wrap;">
+    <a href="index.html" style="color:var(--muted); text-decoration:none;">Home</a>
+    <a href="changelog.html" style="color:var(--muted); text-decoration:none;">Changelog</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator" target="_blank" style="color:var(--muted); text-decoration:none;">GitHub</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator/releases" target="_blank" style="color:var(--muted); text-decoration:none;">Releases</a>
+    <a href="https://github.com/Johnng007/Anteater" target="_blank" style="color:var(--muted); text-decoration:none;">Anteater →</a>
+  </div>
+</footer>
+
+<script>
+  // Hamburger
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('open');
+    navLinks.classList.toggle('mobile-open');
+  });
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      hamburger.classList.remove('open');
+      navLinks.classList.remove('mobile-open');
+    });
+  });
+
+  // Platform tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const container = tab.closest('.doc-section') || document;
+      const group     = tab.closest('.tab-bar');
+      group.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      // find sibling panels
+      let next = group.nextElementSibling;
+      while (next && next.classList.contains('tab-panel')) {
+        next.classList.remove('active');
+        next = next.nextElementSibling;
+      }
+      const panel = document.getElementById(tab.dataset.tab);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  // Copy code button
+  function copyCode(btn) {
+    const pre  = btn.closest('.code-block').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // Sidebar active link on scroll
+  const sections = document.querySelectorAll('.doc-section[id]');
+  const sidebarLinks = document.querySelectorAll('.sidebar nav a');
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        sidebarLinks.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => io.observe(s));
+</script>
+</body>
+</html>
