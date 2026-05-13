@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Optimized viewport for mobile scale -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"/>
   <title>Live Forensicator — Cross-Platform DFIR Toolkit</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
@@ -20,13 +19,11 @@
       --muted:     #5a7a9a;
       --font-mono: 'JetBrains Mono', monospace;
       --font-display: 'Syne', sans-serif;
-      --nav-height: 64px; /* Increased for mobile touch */
+      --nav-height: 70px;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
-
     body {
       background: var(--bg);
       color: var(--text);
@@ -36,11 +33,9 @@
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
     }
-
-    /* Prevent scroll when menu is open */
     body.menu-open { overflow: hidden; }
 
-    /* Scanline overlay - Dimmed slightly for mobile readability */
+    /* Scanline overlay */
     body::before {
       content: '';
       position: fixed;
@@ -56,56 +51,113 @@
       z-index: 9999;
     }
 
-    /* NAV */
-    nav {
+    /* --- TACTICAL NAV STYLES --- */
+    .tactical-nav {
       position: fixed;
       top: 0; left: 0; right: 0;
-      z-index: 10001;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 5%;
       height: var(--nav-height);
-      background: rgba(8,11,15,0.85);
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-    }
-
-    .nav-logo {
-      font-family: var(--font-display);
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--green);
-      letter-spacing: -0.5px;
-      text-decoration: none;
-    }
-
-    .nav-links {
+      background: rgba(8, 11, 15, 0.8);
+      border-bottom: 1px solid rgba(0, 255, 136, 0.15);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 10005;
       display: flex;
-      gap: 24px;
-      list-style: none;
       align-items: center;
     }
 
-    .nav-links a {
-      color: var(--muted);
+    .nav-container {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-brand { text-decoration: none; display: flex; flex-direction: column; }
+    .glitch-text {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 18px;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .version-tag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--green);
+      letter-spacing: 2px;
+      margin-top: -2px;
+    }
+
+    .nav-desktop-links { display: flex; gap: 32px; list-style: none; }
+    .nav-link {
       text-decoration: none;
-      font-size: 13px;
-      transition: color .2s;
-      padding: 8px 0;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: 0.3s;
     }
+    .nav-link span { color: var(--green); margin-right: 4px; font-size: 9px; }
+    .nav-link:hover { color: #fff; }
 
-    .nav-cta {
-      background: var(--green);
-      color: #000 !important;
-      padding: 8px 18px !important;
+    .nav-actions { display: flex; align-items: center; gap: 20px; }
+    .gh-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 8px 16px;
       border-radius: 4px;
-      font-weight: 700;
-      font-size: 12px !important;
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+    .gh-button:hover { background: var(--green); color: #000; }
+
+    .tactical-hamburger {
+      background: none; border: none; width: 24px; height: 16px;
+      display: none; flex-direction: column; justify-content: space-between;
+      cursor: pointer; z-index: 10010;
+    }
+    .tactical-hamburger .bar { width: 100%; height: 2px; background: var(--green); transition: 0.4s; }
+
+    @media (max-width: 992px) {
+      .nav-desktop-links { display: none; }
+      .tactical-hamburger { display: flex; }
+      .gh-button span { display: none; }
+      .gh-button { padding: 8px; }
     }
 
-    /* HERO */
+    .tactical-hamburger.open .bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .tactical-hamburger.open .bar:nth-child(2) { transform: translateY(-7px) rotate(-45deg); }
+
+    .tactical-overlay {
+      position: fixed; top: 0; right: 0; width: 100%; height: 100vh;
+      background: rgba(8, 11, 15, 0.98); z-index: 10006;
+      transform: translateX(100%);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex; flex-direction: column; padding: 120px 40px;
+      border-left: 1px solid var(--green);
+    }
+    .tactical-overlay.active { transform: translateX(0); }
+    .overlay-header { font-size: 10px; color: var(--green); letter-spacing: 3px; margin-bottom: 40px; opacity: 0.6; }
+    .overlay-links { list-style: none; }
+    .overlay-links li { margin-bottom: 25px; opacity: 0; transform: translateX(20px); transition: 0.4s ease forwards; }
+    .tactical-overlay.active .overlay-links li { opacity: 1; transform: translateX(0); transition-delay: calc(0.1s * var(--i)); }
+    .overlay-links a { font-family: var(--font-display); font-size: 32px; font-weight: 800; color: #fff; text-decoration: none; }
+    .overlay-links a:hover { color: var(--green); padding-left: 10px; }
+    .overlay-footer { margin-top: auto; font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+    .pulse { animation: navPulse 2s infinite; color: var(--green); }
+    @keyframes navPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* --- PAGE CONTENT STYLES --- */
     .hero {
       min-height: 100vh;
       display: flex;
@@ -116,260 +168,108 @@
       position: relative;
       text-align: center;
     }
-
     .hero::before {
-      content: '';
-      position: absolute;
-      top: 15%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(90vw, 700px);
-      height: 400px;
+      content: ''; position: absolute; top: 15%; left: 50%;
+      transform: translateX(-50%); width: min(90vw, 700px); height: 400px;
       background: radial-gradient(ellipse, rgba(0,255,136,0.07) 0%, transparent 70%);
       pointer-events: none;
     }
-
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid rgba(0,255,136,0.3);
-      background: rgba(0,255,136,0.06);
-      color: var(--green);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-bottom: 24px;
-      animation: fadeUp 0.6s ease both;
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid rgba(0,255,136,0.3); background: rgba(0,255,136,0.06);
+      color: var(--green); padding: 6px 14px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      margin-bottom: 24px; animation: fadeUp 0.6s ease both;
     }
-
     h1 {
-      font-family: var(--font-display);
-      font-size: clamp(42px, 12vw, 96px); /* More aggressive scaling */
-      font-weight: 800;
-      line-height: 0.9;
-      letter-spacing: -2px;
-      color: #fff;
-      margin-bottom: 16px;
-      animation: fadeUp 0.7s ease both;
+      font-family: var(--font-display); font-size: clamp(42px, 12vw, 96px);
+      font-weight: 800; line-height: 0.9; letter-spacing: -2px;
+      color: #fff; margin-bottom: 16px; animation: fadeUp 0.7s ease both;
     }
-
     .sub-title {
-      font-family: var(--font-display);
-      font-size: clamp(15px, 4vw, 20px);
-      color: var(--muted);
-      margin-bottom: 40px;
-      max-width: 500px;
+      font-family: var(--font-display); font-size: clamp(15px, 4vw, 20px);
+      color: var(--muted); margin-bottom: 40px; max-width: 500px;
       animation: fadeUp 0.8s ease both;
     }
-
-    /* TERMINAL - Mobile Refinement */
     .terminal {
-      width: 100%;
-      max-width: 720px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      text-align: left;
-      margin-bottom: 40px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-      animation: fadeUp 0.9s ease both;
+      width: 100%; max-width: 720px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; text-align: left; margin-bottom: 40px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5); animation: fadeUp 0.9s ease both;
     }
+    .terminal-bar { background: #111825; padding: 12px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+    .terminal-title { flex: 1; text-align: center; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    .terminal-body { padding: 16px; font-size: 12px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+    .cursor { display: inline-block; width: 7px; height: 14px; background: var(--green); animation: blink 1.1s step-end infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-    .terminal-bar {
-      background: #111825;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid var(--border);
-    }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 60px 20px; max-width: 900px; margin: 0 auto; border-top: 1px solid var(--border); }
+    @media (min-width: 768px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+    .stat-num { font-family: var(--font-display); font-size: clamp(28px, 6vw, 42px); color: #fff; }
 
-    .terminal-title {
-      flex: 1;
-      text-align: center;
-      color: var(--muted);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    section { padding: 80px 20px; max-width: 1100px; margin: 0 auto; }
+    .platform-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 992px) { .platform-grid { grid-template-columns: repeat(3, 1fr); } }
+    .platform-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: 0.3s; }
+    .platform-card:hover { border-color: var(--green); }
 
-    .terminal-body {
-      padding: 16px;
-      font-size: 12px;
-      line-height: 1.6;
-      overflow-x: auto; /* Vital for small screens */
-      white-space: pre; /* Prevents awkward wrapping of terminal text */
-    }
-
-    .cursor {
-      display: inline-block;
-      width: 7px; height: 14px;
-      background: var(--green);
-      animation: blink 1.1s step-end infinite;
-    }
-
-    /* STATS - Mobile Grid Fix */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr); /* 2x2 on mobile */
-      gap: 20px;
-      padding: 60px 20px;
-      max-width: 900px;
-      margin: 0 auto;
-      border-top: 1px solid var(--border);
-    }
-
-    @media (min-width: 768px) {
-      .stats { grid-template-columns: repeat(4, 1fr); }
-    }
-
-    .stat-num {
-      font-family: var(--font-display);
-      font-size: clamp(28px, 6vw, 42px);
-      color: #fff;
-    }
-
-    /* PLATFORMS */
-    .platform-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-
-    @media (min-width: 992px) {
-      .platform-grid { grid-template-columns: repeat(3, 1fr); }
-    }
-
-    .platform-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-    }
-
-    /* BUTTONS - Touch friendly */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 48px; /* Touch target */
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: 0.2s;
-    }
-
-    .cta-row {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      width: 100%;
-      max-width: 320px;
-    }
-
-    @media (min-width: 600px) {
-      .cta-row { flex-direction: row; max-width: none; justify-content: center; }
-    }
-
+    .cta-row { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+    @media (min-width: 600px) { .cta-row { flex-direction: row; max-width: none; justify-content: center; } }
+    .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: 0.2s; }
     .btn-primary { background: var(--green); color: #000; }
     .btn-secondary { border: 1px solid var(--border); color: #fff; }
 
-    /* MENU HAMBURGER */
-    .hamburger {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-around;
-      width: 24px;
-      height: 18px;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      z-index: 10002;
-    }
-
-    .hamburger span {
-      width: 24px;
-      height: 2px;
-      background: var(--green);
-      transition: 0.3s;
-    }
-
-    .hamburger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-    .hamburger.open span:nth-child(2) { opacity: 0; }
-    .hamburger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-
-    /* MOBILE NAV OVERLAY */
-    @media (max-width: 768px) {
-      .nav-links {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: var(--bg);
-        flex-direction: column;
-        justify-content: center;
-        padding: 40px;
-        gap: 20px;
-        transform: translateX(100%);
-        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-
-      .nav-links.mobile-open { transform: translateX(0); }
-      
-      .nav-links a { font-size: 24px; font-family: var(--font-display); font-weight: 700; }
-    }
-
-    @media (min-width: 769px) {
-      .hamburger { display: none; }
-    }
-
-    /* Utility */
-    .reveal {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: 0.6s ease-out;
-    }
+    .reveal { opacity: 0; transform: translateY(20px); transition: 0.6s ease-out; }
     .reveal.visible { opacity: 1; transform: translateY(0); }
-
-    section { padding: 80px 20px; max-width: 1100px; margin: 0 auto; }
     h2 { font-family: var(--font-display); font-size: clamp(32px, 8vw, 48px); color: #fff; margin-bottom: 20px; line-height: 1.1; }
     .section-tag { color: var(--green); font-size: 11px; letter-spacing: 2px; margin-bottom: 10px; }
-
     footer { padding: 40px 20px; border-top: 1px solid var(--border); text-align: center; font-size: 12px; color: var(--muted); }
     .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
     
-    code.block {
-      display: block;
-      background: var(--surface);
-      padding: 20px;
-      border-radius: 8px;
-      overflow-x: auto;
-      font-size: 12px;
-      border: 1px solid var(--border);
-    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
-<nav>
-  <a href="#" class="nav-logo">Live<span>/</span>Forensicator</a>
-  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
-    <span></span><span></span><span></span>
-  </button>
-  <ul class="nav-links" id="navLinks">
-    <li><a href="walkthrough">Walkthrough</a></li>
-    <li><a href="changelog">Changelog</a></li>
-    <li><a href="index">Home</a></li>
-    <li><a href="https://github.com/Johnng007/Live-Forensicator" class="nav-cta">GitHub ↗</a></li>
-  </ul>
+<nav class="tactical-nav">
+  <div class="nav-container">
+    <a href="#" class="nav-brand">
+      <span class="glitch-text">FORENSICATOR</span>
+      <span class="version-tag">STABLE v4.1.1</span>
+    </a>
+
+    <ul class="nav-desktop-links">
+      <li><a href="#platforms" class="nav-link"><span>01</span> Platforms</a></li>
+      <li><a href="walkthrough.html" class="nav-link"><span>02</span> Walkthrough</a></li>
+      <li><a href="changelog.html" class="nav-link"><span>03</span> Changelog</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <a href="https://github.com/Johnng007/Live-Forensicator" class="gh-button">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        <span>GitHub</span>
+      </a>
+      <button class="tactical-hamburger" id="navToggle" aria-label="Toggle Menu">
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </button>
+    </div>
+  </div>
 </nav>
+
+<div class="tactical-overlay" id="navOverlay">
+  <div class="overlay-header">SYSTEM_MENU.EXE</div>
+  <ul class="overlay-links">
+    <li style="--i:1"><a href="index.html">_HOME</a></li>
+    <li style="--i:2"><a href="#platforms">_PLATFORMS</a></li>
+    <li><hr style="border:none; border-top:1px solid rgba(0,255,136,0.1); margin: 10px 0;"></li>
+    <li style="--i:3"><a href="walkthrough.html">_WALKTHROUGH</a></li>
+    <li style="--i:4"><a href="changelog.html">_CHANGELOG</a></li>
+  </ul>
+  <div class="overlay-footer">
+    STATUS: <span class="pulse">READY</span> | SECURE_CONNECTION: TRUE
+  </div>
+</div>
 
 <div class="hero">
   <div class="badge">v4.1.1 — Sigma Support</div>
@@ -395,7 +295,7 @@
 
   <div class="cta-row">
     <a href="https://github.com/Johnng007/Live-Forensicator" class="btn btn-primary">⭐ GitHub Star</a>
-    <a href="#usage" class="btn btn-secondary">Get Started</a>
+    <a href="#platforms" class="btn btn-secondary">Explore Features</a>
   </div>
 </div>
 
@@ -444,23 +344,23 @@
   }, { threshold: 0.1 });
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-  // Improved Mobile Menu
-  const hamburger = document.getElementById('hamburger');
-  const navLinks = document.getElementById('navLinks');
-  const body = document.body;
+  // Tactical Menu Controller
+  const navToggle = document.getElementById('navToggle');
+  const navOverlay = document.getElementById('navOverlay');
+  const bodyElement = document.body;
 
-  hamburger.addEventListener('click', () => {
-    const isOpen = navLinks.classList.toggle('mobile-open');
-    hamburger.classList.toggle('open');
-    body.classList.toggle('menu-open', isOpen);
+  navToggle.addEventListener('click', () => {
+    const isOpen = navToggle.classList.toggle('open');
+    navOverlay.classList.toggle('active');
+    bodyElement.classList.toggle('menu-open', isOpen);
   });
 
   // Close menu on link click
-  navLinks.querySelectorAll('a').forEach(link => {
+  document.querySelectorAll('.overlay-links a').forEach(link => {
     link.addEventListener('click', () => {
-      navLinks.classList.remove('mobile-open');
-      hamburger.classList.remove('open');
-      body.classList.remove('menu-open');
+      navToggle.classList.remove('open');
+      navOverlay.classList.remove('active');
+      bodyElement.classList.remove('menu-open');
     });
   });
 </script>
