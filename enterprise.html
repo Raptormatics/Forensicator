@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forensicator Enterprise — Enterprise DFIR Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #080b0f;
+      --surface:  #0d1219;
+      --border:   #1a2333;
+      --green:    #00ff88;
+      --green-dim:#00cc6a;
+      --amber:    #ffaa00;
+      --red:      #ff4466;
+      --blue:     #4488ff;
+      --text:     #c8d8e8;
+      --muted:    #5a7a9a;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-display: 'Syne', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,136,0.012) 2px,
+        rgba(0,255,136,0.012) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Noise texture */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9998;
+      opacity: 0.5;
+    }
+
+    /* NAV */
+    .site-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      width: 100%;
+      max-width: 100vw;
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 56px;
+      background: rgba(8,11,15,0.9);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: 0;
+      text-decoration: none;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .nav-logo span { color: var(--muted); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--green); }
+    .nav-links a.active { color: var(--green); }
+
+    .nav-cta {
+      background: var(--green);
+      color: #000 !important;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .nav-cta:hover { background: var(--green-dim) !important; color: #000 !important; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 20px 80px;
+      position: relative;
+      text-align: center;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(0,255,136,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(0,255,136,0.3);
+      background: rgba(0,255,136,0.06);
+      color: var(--green);
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin-bottom: 36px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .badge::before {
+      content: '';
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 8vw, 80px);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -3px;
+      color: #fff;
+      margin-bottom: 12px;
+      animation: fadeUp 0.7s ease both;
+    }
+
+    h1 .accent { color: var(--green); }
+
+    .sub-title {
+      font-family: var(--font-display);
+      font-size: clamp(15px, 2vw, 20px);
+      color: var(--muted);
+      font-weight: 400;
+      margin-bottom: 16px;
+      max-width: 640px;
+      animation: fadeUp 0.75s ease both;
+    }
+
+    .hero-support {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      margin-bottom: 48px;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .hero-support span {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    /* CTA buttons */
+    .cta-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.9s ease both;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 26px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all .2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: var(--green-dim);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,255,136,0.25);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--green);
+      color: var(--green);
+      transform: translateY(-1px);
+    }
+
+    /* SECTION */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 100px 24px;
+    }
+
+    .section-tag {
+      color: var(--green);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.05;
+      margin-bottom: 20px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      max-width: 560px;
+      font-size: 14px;
+      margin-bottom: 64px;
+    }
+
+    /* Feature grid (3-col) */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 28px 24px;
+      transition: border-color .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card:hover { border-color: rgba(0,255,136,0.3); }
+
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    /* Deployment cards */
+    .deploy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .deploy-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+      transition: border-color .2s, transform .2s;
+    }
+
+    .deploy-card:hover {
+      border-color: var(--green);
+      transform: translateY(-3px);
+    }
+
+    .deploy-icon {
+      font-size: 30px;
+      margin-bottom: 14px;
+    }
+
+    .deploy-name {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .deploy-tag {
+      color: var(--green);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .deploy-desc {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* Capabilities list */
+    .cap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .cap-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 22px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: border-color .2s;
+    }
+
+    .cap-item:hover { border-color: rgba(0,255,136,0.25); }
+
+    .cap-dot {
+      color: var(--green);
+      font-size: 16px;
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .cap-text strong {
+      color: #fff;
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .cap-text span {
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+
+    /* Audience cards */
+    .audience-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .audience-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      transition: border-color .2s, transform .2s;
+    }
+
+    .audience-card:hover {
+      border-color: rgba(0,255,136,0.3);
+      transform: translateY(-2px);
+    }
+
+    .audience-icon { font-size: 26px; margin-bottom: 12px; }
+
+    .audience-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .audience-desc { color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+
+    /* Security bullets */
+    .sec-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .sec-grid { grid-template-columns: 1fr; }
+    }
+
+    .sec-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sec-bullets li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .sec-bullets li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .sec-blurb {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    /* Integration cards */
+    .int-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .int-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 16px;
+      text-align: center;
+      transition: border-color .2s, transform .2s;
+    }
+
+    .int-card:hover {
+      border-color: rgba(0,255,136,0.3);
+      transform: translateY(-2px);
+    }
+
+    .int-icon { font-size: 24px; margin-bottom: 8px; }
+
+    .int-name {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .int-note {
+      color: var(--muted);
+      font-size: 12px;
+      border-left: 2px solid var(--green);
+      padding-left: 14px;
+      line-height: 1.7;
+    }
+
+    /* Use case cards */
+    .usecase-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .usecase-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      transition: border-color .2s, transform .2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .usecase-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .usecase-card:hover::before { opacity: 1; }
+    .usecase-card:hover { border-color: rgba(255,170,0,0.3); }
+
+    .usecase-icon { font-size: 24px; margin-bottom: 12px; }
+
+    .usecase-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .usecase-desc { color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+
+    /* Process steps */
+    .steps-row {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
+    .step {
+      flex: 1;
+      min-width: 140px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-right: none;
+      padding: 28px 20px;
+      text-align: center;
+      position: relative;
+      transition: border-color .2s;
+    }
+
+    .step:last-child { border-right: 1px solid var(--border); border-radius: 0 10px 10px 0; }
+    .step:first-child { border-radius: 10px 0 0 10px; }
+
+    .step:hover { border-color: rgba(0,255,136,0.3); }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--green);
+      border-radius: 50%;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 700;
+      margin: 0 auto 12px;
+    }
+
+    .step-label {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    @media (max-width: 768px) {
+      .steps-row {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .step {
+        border-right: 1px solid var(--border);
+        border-radius: 8px !important;
+      }
+    }
+
+    /* FORM */
+    .form-section {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 100px 24px;
+    }
+
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 48px;
+    }
+
+    @media (max-width: 768px) {
+      .form-card { padding: 28px 20px; }
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    label .req { color: var(--green); margin-left: 2px; }
+
+    input, select, textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(0,255,136,0.08);
+    }
+
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+
+    textarea { resize: vertical; min-height: 100px; }
+
+    select option { background: var(--surface); }
+
+    .form-fieldset {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+
+    .form-fieldset legend {
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0 8px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+
+    .checkbox-row label {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text);
+      cursor: pointer;
+      margin-bottom: 0;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border-radius: 6px;
+      background: var(--green);
+      color: #000;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: background .2s, transform .2s, box-shadow .2s;
+      margin-top: 8px;
+    }
+
+    .btn-submit:hover {
+      background: var(--green-dim);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,255,136,0.25);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .form-msg {
+      display: none;
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-size: 13px;
+      margin-top: 16px;
+      border: 1px solid;
+    }
+
+    .form-msg.success {
+      background: rgba(0,255,136,0.07);
+      border-color: rgba(0,255,136,0.3);
+      color: var(--green);
+    }
+
+    .form-msg.error {
+      background: rgba(255,68,102,0.07);
+      border-color: rgba(255,68,102,0.3);
+      color: var(--red);
+    }
+
+    /* CTA section */
+    .cta-section {
+      text-align: center;
+      padding: 100px 24px;
+      position: relative;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 300px;
+      background: radial-gradient(ellipse, rgba(0,255,136,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 { margin-bottom: 16px; }
+
+    .cta-section p {
+      color: var(--muted);
+      margin-bottom: 40px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--green); }
+
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Hamburger */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      z-index: 10002;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all .3s;
+    }
+
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    @media (max-width: 960px) {
+      body.menu-open { overflow: hidden; }
+      .site-nav { padding: 0 16px; }
+      .nav-logo { font-size: 16px; }
+      .hamburger { display: flex; }
+
+      .nav-links {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        width: 100vw;
+        height: calc(100vh - 56px);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 0;
+        padding: 18px 16px;
+        background: rgba(8,11,15,0.98);
+        overflow-y: auto;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(-8px);
+        transition: opacity .2s ease, transform .2s ease, visibility .2s ease;
+        z-index: 10000;
+        border-top: 1px solid var(--border);
+      }
+
+      .nav-links.mobile-open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+
+      .nav-links li { width: 100%; }
+
+      .nav-links a {
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+        padding: 0 12px;
+        border-bottom: 1px solid rgba(26,35,51,0.75);
+        font-size: 15px;
+      }
+
+      .nav-cta {
+        justify-content: center;
+        min-height: 44px;
+        margin-top: 14px;
+        padding: 0 18px;
+        font-size: 13px;
+        border-bottom: none !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      h1 { letter-spacing: 0; }
+
+      .hero { padding: 88px 16px 56px; }
+
+      .cta-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .cta-row .btn { justify-content: center; }
+
+      section { padding: 64px 16px; }
+
+      .cta-section { padding: 64px 16px; }
+
+      footer {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 24px 20px;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="site-nav">
+  <a href="index.html" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html#platforms">Platforms</a></li>
+    <li><a href="index.html#features">Features</a></li>
+    <li><a href="walkthrough.html">Walkthrough</a></li>
+    <li><a href="enterprise.html" class="active">Enterprise</a></li>
+    <li><a href="changelog.html">Changelog</a></li>
+    <li><a href="#demo-form" class="nav-cta">Request Demo</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">Enterprise — Cloud · Self-Hosted · Air-Gapped</div>
+
+  <h1>Forensicator<br><span class="accent">Enterprise</span></h1>
+  <p class="sub-title">Enterprise-Grade Digital Forensics and Incident Response Platform</p>
+  <p class="hero-support">Supporting <span>cloud</span>, <span>self-hosted</span>, <span>private cloud</span>, and <span>air-gapped</span> deployments.</p>
+
+  <p style="color:var(--muted);font-size:14px;max-width:620px;margin-bottom:48px;animation:fadeUp 0.85s ease both;">
+    Forensicator enables security teams to collect, analyze, correlate, and investigate digital evidence across endpoints, servers, and cloud environments from a single platform. Designed for organizations that require rapid incident response, forensic integrity, and operational visibility.
+  </p>
+
+  <div class="cta-row">
+    <a href="#demo-form" class="btn btn-primary">Request a Demo</a>
+    <a href="mailto:sales@forensicator.io" class="btn btn-secondary">Contact Sales</a>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- WHY FORENSICATOR -->
+<section id="why">
+  <div class="section-tag">// Why Forensicator</div>
+  <h2>Built for investigation<br>teams that can't slow down.</h2>
+  <p class="section-sub">Reduce friction across the entire investigation lifecycle — from collection to closure.</p>
+
+  <div class="feature-grid reveal">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Faster Investigations</div>
+      <p class="feature-desc">Reduce manual collection efforts and centralize investigative workflows. Analysts spend less time on tooling and more time on analysis.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-title">Evidence Preservation</div>
+      <p class="feature-desc">Maintain chain of custody and forensic integrity throughout the investigation lifecycle. Every action is logged and accountable.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔭</div>
+      <div class="feature-title">Unified Visibility</div>
+      <p class="feature-desc">Correlate findings, artifacts, logs, and investigative evidence from a single platform. No more fragmented toolchains.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- DEPLOYMENT OPTIONS -->
+<section id="deployment">
+  <div class="section-tag">// Deployment</div>
+  <h2>Deploy Forensicator<br>Your Way</h2>
+  <p class="section-sub">Organizations have different security and compliance requirements. Forensicator supports multiple deployment models.</p>
+
+  <div class="deploy-grid reveal">
+    <div class="deploy-card">
+      <div class="deploy-icon">☁️</div>
+      <div class="deploy-name">SaaS</div>
+      <div class="deploy-tag">Vendor-Hosted</div>
+      <p class="deploy-desc">Vendor-hosted deployment with rapid onboarding and automatic updates. Ideal for teams that want to move fast without infrastructure overhead.</p>
+    </div>
+    <div class="deploy-card">
+      <div class="deploy-icon">🖥️</div>
+      <div class="deploy-name">Self-Hosted</div>
+      <div class="deploy-tag">Full Control</div>
+      <p class="deploy-desc">Deploy within your own infrastructure and maintain full control of data. Suited for organizations with strict data residency requirements.</p>
+    </div>
+    <div class="deploy-card">
+      <div class="deploy-icon">🏛️</div>
+      <div class="deploy-name">Private Cloud</div>
+      <div class="deploy-tag">Azure · AWS · GCP</div>
+      <p class="deploy-desc">Deploy in Azure, AWS, or other private cloud environments. Leverage your existing cloud investment while maintaining control.</p>
+    </div>
+    <div class="deploy-card">
+      <div class="deploy-icon">🔌</div>
+      <div class="deploy-name">Air-Gapped</div>
+      <div class="deploy-tag">Isolated Networks</div>
+      <p class="deploy-desc">Operate in isolated environments without internet connectivity. Purpose-built for government, defense, and critical infrastructure.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- KEY CAPABILITIES -->
+<section id="capabilities">
+  <div class="section-tag">// Capabilities</div>
+  <h2>Built for Modern<br>DFIR Operations</h2>
+  <p class="section-sub">Everything your team needs to collect, investigate, and close cases — without stitching together separate tools.</p>
+
+  <div class="cap-grid reveal">
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>Remote Evidence Collection</strong>
+        <span>Collect forensic artifacts from endpoints and servers remotely without physical access.</span>
+      </div>
+    </div>
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>Investigation Management</strong>
+        <span>Track investigations, evidence, findings, and remediation activities in one place.</span>
+      </div>
+    </div>
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>Artifact Analysis</strong>
+        <span>Analyze collected forensic data and investigative artifacts with built-in parsers and rules.</span>
+      </div>
+    </div>
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>Evidence Correlation</strong>
+        <span>Link related findings and visualize investigative relationships across cases.</span>
+      </div>
+    </div>
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>Log Ingestion</strong>
+        <span>Import and analyze logs from supported sources including Windows Event, Syslog, and cloud logs.</span>
+      </div>
+    </div>
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>SIEM Integration</strong>
+        <span>Export findings and events to existing security monitoring platforms seamlessly.</span>
+      </div>
+    </div>
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>Audit Trail</strong>
+        <span>Maintain complete investigative history and accountability for every action taken.</span>
+      </div>
+    </div>
+    <div class="cap-item">
+      <div class="cap-dot">▸</div>
+      <div class="cap-text">
+        <strong>Role-Based Access</strong>
+        <span>Control access based on team responsibilities. Analyst, reviewer, and admin roles.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- WHO USES FORENSICATOR -->
+<section id="audience">
+  <div class="section-tag">// Designed For</div>
+  <h2>Who Uses Forensicator</h2>
+  <p class="section-sub">Trusted by security operations teams across industries that require speed, integrity, and operational clarity.</p>
+
+  <div class="audience-grid reveal">
+    <div class="audience-card">
+      <div class="audience-icon">🖥️</div>
+      <div class="audience-title">Security Operations Centers (SOC)</div>
+      <p class="audience-desc">Investigate alerts and security incidents faster with structured workflows and centralized evidence management.</p>
+    </div>
+    <div class="audience-card">
+      <div class="audience-icon">🚨</div>
+      <div class="audience-title">Incident Response Teams</div>
+      <p class="audience-desc">Collect evidence and coordinate investigations across analysts during active security incidents.</p>
+    </div>
+    <div class="audience-card">
+      <div class="audience-icon">🔬</div>
+      <div class="audience-title">Digital Forensics Teams</div>
+      <p class="audience-desc">Perform forensic examinations and preserve evidence with chain of custody documentation throughout.</p>
+    </div>
+    <div class="audience-card">
+      <div class="audience-icon">🌐</div>
+      <div class="audience-title">MSSPs</div>
+      <p class="audience-desc">Manage investigations across multiple customer environments from a single multi-tenant platform.</p>
+    </div>
+    <div class="audience-card">
+      <div class="audience-icon">🏢</div>
+      <div class="audience-title">Enterprise Security Teams</div>
+      <p class="audience-desc">Improve visibility and response capabilities across large, distributed organizational environments.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- SECURITY & COMPLIANCE -->
+<section id="security">
+  <div class="section-tag">// Security & Compliance</div>
+  <h2>Security by Design</h2>
+  <p class="section-sub">Forensicator is designed to support organizations operating in highly sensitive environments.</p>
+
+  <div class="sec-grid reveal">
+    <ul class="sec-bullets">
+      <li>Self-hosted deployment options</li>
+      <li>Private infrastructure support</li>
+      <li>Air-gapped operation support</li>
+      <li>Role-based access controls</li>
+      <li>Audit logging</li>
+      <li>Evidence integrity preservation</li>
+      <li>Secure communications</li>
+      <li>Enterprise authentication integration</li>
+    </ul>
+    <div>
+      <p class="sec-blurb">
+        Security teams operate in high-stakes, often regulated environments. Forensicator was built to meet those requirements — not as an afterthought, but as core design principles.<br><br>
+        Whether you operate in a regulated financial institution, a government agency, or a critical infrastructure environment, Forensicator provides the deployment flexibility and security controls your organization needs.
+      </p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- INTEGRATIONS -->
+<section id="integrations">
+  <div class="section-tag">// Integrations</div>
+  <h2>Integrates With Existing<br>Security Ecosystems</h2>
+  <p class="section-sub">Forensicator fits into your current security stack — no rip-and-replace required.</p>
+
+  <div class="int-grid reveal">
+    <div class="int-card">
+      <div class="int-icon">🟦</div>
+      <div class="int-name">Microsoft Sentinel</div>
+    </div>
+    <div class="int-card">
+      <div class="int-icon">🟧</div>
+      <div class="int-name">Splunk</div>
+    </div>
+    <div class="int-card">
+      <div class="int-icon">🟥</div>
+      <div class="int-name">QRadar</div>
+    </div>
+    <div class="int-card">
+      <div class="int-icon">🟪</div>
+      <div class="int-name">ArcSight</div>
+    </div>
+    <div class="int-card">
+      <div class="int-icon">🖧</div>
+      <div class="int-name">Syslog Servers</div>
+    </div>
+    <div class="int-card">
+      <div class="int-icon">🎟️</div>
+      <div class="int-name">ServiceNow</div>
+    </div>
+    <div class="int-card">
+      <div class="int-icon">📋</div>
+      <div class="int-name">Jira</div>
+    </div>
+    <div class="int-card">
+      <div class="int-icon">🔑</div>
+      <div class="int-name">Microsoft Entra ID</div>
+    </div>
+  </div>
+
+  <p class="int-note">Additional integrations can be developed through APIs and extensibility features. Contact sales to discuss your specific integration requirements.</p>
+</section>
+
+<hr class="divider">
+
+<!-- USE CASES -->
+<section id="usecases">
+  <div class="section-tag">// Use Cases</div>
+  <h2>Common Use Cases</h2>
+  <p class="section-sub">From ransomware response to compliance investigations, Forensicator supports the full range of enterprise security investigation scenarios.</p>
+
+  <div class="usecase-grid reveal">
+    <div class="usecase-card">
+      <div class="usecase-icon">🚨</div>
+      <div class="usecase-title">Incident Response</div>
+      <p class="usecase-desc">Rapid collection and investigation of security incidents. Coordinate multi-analyst investigations with shared evidence and findings.</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🕵️</div>
+      <div class="usecase-title">Insider Threat Investigations</div>
+      <p class="usecase-desc">Gather evidence and analyze suspicious activity. Maintain chain of custody for potential legal proceedings.</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🦠</div>
+      <div class="usecase-title">Ransomware Response</div>
+      <p class="usecase-desc">Identify impact, collect evidence, and support recovery efforts. Understand the full scope of an attack quickly.</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">📋</div>
+      <div class="usecase-title">Compliance Investigations</div>
+      <p class="usecase-desc">Support internal audits and regulatory investigations with documented, reproducible forensic processes.</p>
+    </div>
+    <div class="usecase-card">
+      <div class="usecase-icon">🎯</div>
+      <div class="usecase-title">Threat Hunting</div>
+      <p class="usecase-desc">Collect and correlate artifacts to identify suspicious behavior across your environment before incidents occur.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ENGAGEMENT PROCESS -->
+<section id="process">
+  <div class="section-tag">// Engagement</div>
+  <h2>How Engagement Works</h2>
+  <p class="section-sub">A straightforward path from first conversation to production deployment.</p>
+
+  <div class="steps-row reveal">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-label">Request a Demo</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-label">Discovery Session</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-label">Proof of Concept</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-label">Deployment Planning</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-label">Production Rollout</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- DEMO REQUEST FORM -->
+<div class="form-section" id="demo-form">
+  <div class="section-tag" style="text-align:center;">// Request Demo</div>
+  <h2 style="text-align:center;margin-bottom:12px;">Request a Personalized Demo</h2>
+  <p style="text-align:center;color:var(--muted);font-size:14px;max-width:520px;margin:0 auto 48px;">Tell us about your environment and investigation requirements. We will contact you to schedule a demonstration.</p>
+
+  <div class="form-card">
+    <form id="demoForm" action="https://formspree.io/f/mlgkeqyg" method="POST" novalidate>
+
+      <fieldset class="form-fieldset">
+        <legend>Contact Information</legend>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fullName">Full Name <span class="req">*</span></label>
+            <input type="text" id="fullName" name="fullName" placeholder="Jane Smith" required />
+          </div>
+          <div class="form-group">
+            <label for="workEmail">Work Email <span class="req">*</span></label>
+            <input type="email" id="workEmail" name="workEmail" placeholder="jane@company.com" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="companyName">Company Name <span class="req">*</span></label>
+            <input type="text" id="companyName" name="companyName" placeholder="Acme Corp" required />
+          </div>
+          <div class="form-group">
+            <label for="jobTitle">Job Title</label>
+            <input type="text" id="jobTitle" name="jobTitle" placeholder="Security Engineer" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="country">Country</label>
+          <input type="text" id="country" name="country" placeholder="United States" />
+        </div>
+      </fieldset>
+
+      <fieldset class="form-fieldset">
+        <legend>Organization Information</legend>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="employees">Number of Employees</label>
+            <select id="employees" name="employees">
+              <option value="" disabled selected>Select range</option>
+              <option value="1-50">1–50</option>
+              <option value="51-250">51–250</option>
+              <option value="251-1000">251–1,000</option>
+              <option value="1000+">1,000+</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="deployment">Deployment Preference</label>
+            <select id="deployment" name="deployment">
+              <option value="" disabled selected>Select preference</option>
+              <option value="SaaS">SaaS</option>
+              <option value="Self-Hosted">Self-Hosted</option>
+              <option value="Private Cloud">Private Cloud</option>
+              <option value="Air-Gapped">Air-Gapped</option>
+              <option value="Not Sure">Not Sure</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-fieldset">
+        <legend>Requirements</legend>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="siemPlatform">Current SIEM Platform</label>
+            <input type="text" id="siemPlatform" name="siemPlatform" placeholder="e.g. Splunk, Sentinel" />
+          </div>
+          <div class="form-group">
+            <label for="dfirTools">Current DFIR Tools</label>
+            <input type="text" id="dfirTools" name="dfirTools" placeholder="e.g. Velociraptor, KAPE" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="challenges">Challenges You Are Looking To Solve</label>
+          <textarea id="challenges" name="challenges" placeholder="Describe your current challenges and what you're hoping Forensicator can help with..."></textarea>
+        </div>
+      </fieldset>
+
+      <div class="form-group">
+        <div class="checkbox-row">
+          <input type="checkbox" id="consent" name="consent" required />
+          <label for="consent">I agree to be contacted regarding my request. <span class="req">*</span></label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Request Demo</button>
+
+      <div class="form-msg success" id="formSuccess">✓ Your request has been submitted. We'll be in touch shortly to schedule your demo.</div>
+      <div class="form-msg error" id="formError">✗ Submission failed. Please try again or email us directly.</div>
+    </form>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- FINAL CTA -->
+<div class="cta-section">
+  <div class="section-tag">// Get Started</div>
+  <h2>Ready to Modernize Your<br>Investigation Workflow?</h2>
+  <p>See how Forensicator can help your organization accelerate investigations and improve incident response operations.</p>
+  <div class="cta-row">
+    <a href="#demo-form" class="btn btn-primary">Request a Demo</a>
+    <a href="mailto:sales@forensicator.io" class="btn btn-secondary">Contact Sales</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    Built by <a href="https://github.com/Johnng007" target="_blank"><strong>Raptormatics</strong></a> &nbsp;·&nbsp;
+    &copy; <strong>2026 Forensicator. All rights reserved.</strong>
+  </div>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="index.html#features">Features</a>
+    <a href="enterprise.html">Enterprise</a>
+    <a href="walkthrough.html">Documentation</a>
+    <a href="#">API Reference</a>
+    <a href="https://github.com/Johnng007/Live-Forensicator" target="_blank">GitHub</a>
+    <a href="#">Privacy Policy</a>
+    <a href="mailto:sales@forensicator.io">Contact</a>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Hamburger
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+
+  hamburger.addEventListener('click', () => {
+    const isOpen = hamburger.classList.toggle('open');
+    navLinks.classList.toggle('mobile-open', isOpen);
+    document.body.classList.toggle('menu-open', isOpen);
+    hamburger.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      hamburger.classList.remove('open');
+      navLinks.classList.remove('mobile-open');
+      document.body.classList.remove('menu-open');
+      hamburger.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Form submission via Formspree (AJAX)
+  const form       = document.getElementById('demoForm');
+  const submitBtn  = document.getElementById('submitBtn');
+  const msgSuccess = document.getElementById('formSuccess');
+  const msgError   = document.getElementById('formError');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Basic validation
+    const required = form.querySelectorAll('[required]');
+    let valid = true;
+
+    required.forEach(field => {
+      if (field.type === 'checkbox') {
+        if (!field.checked) { field.style.outline = '2px solid var(--red)'; valid = false; }
+        else field.style.outline = '';
+      } else {
+        if (!field.value.trim()) { field.style.borderColor = 'var(--red)'; valid = false; }
+        else field.style.borderColor = '';
+      }
+    });
+
+    if (!valid) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    msgSuccess.style.display = 'none';
+    msgError.style.display   = 'none';
+
+    try {
+      const data = new FormData(form);
+      const res  = await fetch(form.action, {
+        method: 'POST',
+        body: data,
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (res.ok) {
+        form.reset();
+        msgSuccess.style.display = 'block';
+      } else {
+        msgError.style.display = 'block';
+      }
+    } catch {
+      msgError.style.display = 'block';
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Request Demo';
+  });
+</script>
+</body>
+</html>
