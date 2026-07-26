@@ -4,20 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Live Forensicator — Cross-Platform DFIR Toolkit</title>
+  <link rel="icon" type="image/png" href="forensicator_favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:       #080b0f;
-      --surface:  #0d1219;
-      --border:   #1a2333;
-      --green:    #00ff88;
-      --green-dim:#00cc6a;
-      --amber:    #ffaa00;
-      --red:      #ff4466;
-      --blue:     #4488ff;
-      --text:     #c8d8e8;
-      --muted:    #5a7a9a;
-      --font-mono: 'JetBrains Mono', monospace;
+      --bg:           #0B1220;
+      --surface:      #162033;
+      --border:       #243244;
+      --green:        #2563EB;
+      --green-dim:    #1E4ED8;
+      --amber:        #F59E0B;
+      --red:          #DC2626;
+      --blue:         #2563EB;
+      --success:      #22C55E;
+      --text:         #FFFFFF;
+      --muted:        #94A3B8;
+      --font-mono:    'JetBrains Mono', monospace;
       --font-display: 'Syne', sans-serif;
     }
 
@@ -43,8 +45,8 @@
         0deg,
         transparent,
         transparent 2px,
-        rgba(0,255,136,0.012) 2px,
-        rgba(0,255,136,0.012) 4px
+        rgba(37, 99, 235,0.012) 2px,
+        rgba(37, 99, 235,0.012) 4px
       );
       pointer-events: none;
       z-index: 9999;
@@ -139,7 +141,7 @@
       transform: translateX(-50%);
       width: 700px;
       height: 400px;
-      background: radial-gradient(ellipse, rgba(0,255,136,0.07) 0%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(37, 99, 235,0.07) 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -147,8 +149,8 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      border: 1px solid rgba(0,255,136,0.3);
-      background: rgba(0,255,136,0.06);
+      border: 1px solid rgba(37, 99, 235,0.3);
+      background: rgba(37, 99, 235,0.06);
       color: var(--green);
       padding: 5px 14px;
       border-radius: 20px;
@@ -183,6 +185,7 @@
       color: #fff;
       margin-bottom: 12px;
       animation: fadeUp 0.7s ease both;
+      overflow-wrap: break-word;
     }
 
     h1 .accent { color: var(--green); }
@@ -207,7 +210,7 @@
       overflow: hidden;
       text-align: left;
       margin-bottom: 48px;
-      box-shadow: 0 0 60px rgba(0,255,136,0.05), 0 20px 60px rgba(0,0,0,0.6);
+      box-shadow: 0 0 60px rgba(37, 99, 235,0.05), 0 20px 60px rgba(0,0,0,0.6);
       animation: fadeUp 0.9s ease both;
     }
 
@@ -226,7 +229,7 @@
     }
     .dot.red   { background: #ff5f57; }
     .dot.amber { background: #febc2e; }
-    .dot.green { background: #28c840; }
+    .dot.green { background: var(--success); }
 
     .terminal-title {
       flex: 1;
@@ -245,7 +248,7 @@
     .t-cmd { color: #fff; }
     .t-comment { color: var(--muted); }
     .t-info { color: var(--amber); }
-    .t-success { color: var(--green); }
+    .t-success { color: var(--success); }
     .t-section { color: var(--blue); }
     .t-warn { color: var(--red); }
 
@@ -295,7 +298,7 @@
     .btn-primary:hover {
       background: var(--green-dim);
       transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(0,255,136,0.25);
+      box-shadow: 0 8px 24px rgba(37, 99, 235,0.25);
     }
 
     .btn-secondary {
@@ -365,6 +368,7 @@
       letter-spacing: -1px;
       line-height: 1.05;
       margin-bottom: 20px;
+      overflow-wrap: break-word;
     }
 
     .section-sub {
@@ -435,8 +439,8 @@
     }
 
     .chip {
-      background: rgba(0,255,136,0.08);
-      border: 1px solid rgba(0,255,136,0.2);
+      background: rgba(37, 99, 235,0.08);
+      border: 1px solid rgba(37, 99, 235,0.2);
       color: var(--green);
       font-size: 11px;
       padding: 3px 10px;
@@ -471,7 +475,7 @@
     }
 
     .feature-card:hover::before { opacity: 1; }
-    .feature-card:hover { border-color: rgba(0,255,136,0.3); }
+    .feature-card:hover { border-color: rgba(37, 99, 235,0.3); }
 
     .feature-icon {
       font-size: 22px;
@@ -603,7 +607,7 @@
       transform: translate(-50%, -50%);
       width: 600px;
       height: 300px;
-      background: radial-gradient(ellipse, rgba(0,255,136,0.06) 0%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(37, 99, 235,0.06) 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -870,7 +874,7 @@
 <body>
 
 <nav class="site-nav">
-  <a href="#" class="nav-logo"><img src="forensicator_logo.png" alt="Forensicator Logo" style="height: 60px;"></a>
+  <a href="#" class="nav-logo"><img src="forensicator_logo.png" alt="Forensicator Logo" style="height: 160px;"></a>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
