@@ -56,7 +56,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 40px;
-      height: 56px;
+      height: 80px;
       background: rgba(8,11,15,0.95);
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(12px);
@@ -125,13 +125,13 @@
 
       .nav-links {
         position: fixed;
-        top: 56px;
+        top: 80px;
         left: 0;
         right: auto;
         bottom: auto;
         width: 100%;
-        height: calc(100vh - 56px);
-        max-height: calc(100vh - 56px);
+        height: calc(100vh - 80px);
+        max-height: calc(100vh - 80px);
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -152,8 +152,8 @@
 
       @supports (height: 100dvh) {
         .nav-links {
-          height: calc(100dvh - 56px);
-          max-height: calc(100dvh - 56px);
+          height: calc(100vh - 80px);
+          max-height: calc(100vh - 80px);
         }
       }
 
@@ -199,7 +199,7 @@
     .page-wrap {
       max-width: 860px;
       margin: 0 auto;
-      padding: 110px 24px 100px;
+      padding: 134px 24px 100px;
     }
 
     /* Back link */
@@ -229,7 +229,7 @@
       font-size: clamp(36px, 5vw, 56px);
       font-weight: 800;
       color: #fff;
-      letter-spacing: -2px;
+      letter-spacing: -1.5px;
       line-height: 1.05;
       margin-bottom: 14px;
     }
@@ -472,7 +472,7 @@
 
 <!-- NAV -->
 <nav class="site-nav">
-  <a href="index.html" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <a href="index.html" class="nav-logo"><img src="forensicator_logo.png" alt="Forensicator Logo" style="height: 60px;"></a>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
@@ -481,7 +481,7 @@
     <li><a href="index.html#features">Features</a></li>
     <li><a href="index.html#usage">Usage</a></li>
     <li><a href="index.html#roadmap">Roadmap</a></li>
-    <li><a href="walkthrough.html">Walkthrough</a></li>
+    <li><a href="https://opendocs.forensicator.io">Docs</a></li>
     <li><a href="enterprise.html">Forensicator Enterprise</a></li>
     <li><a href="changelog.html" class="active">Changelog</a></li>
     <li><a href="https://github.com/Johnng007/Live-Forensicator" class="nav-cta">GitHub ↗</a></li>
@@ -957,7 +957,7 @@
   </div>
   <div class="footer-links">
     <a href="index.html">Home</a>
-    <a href="walkthrough.html">Walkthrough</a>
+    <a href="https://opendocs.forensicator.io">Docs</a>
     <a href="https://github.com/Johnng007/Live-Forensicator" target="_blank">GitHub</a>
     <a href="https://github.com/Johnng007/Live-Forensicator/releases" target="_blank">Releases</a>
     <a href="https://github.com/Johnng007/Anteater" target="_blank">Anteater →</a>

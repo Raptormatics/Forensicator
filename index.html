@@ -72,7 +72,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 40px;
-      height: 56px;
+      height: 80px;
       background: rgba(8,11,15,0.9);
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(12px);
@@ -179,7 +179,7 @@
       font-size: clamp(36px, 12vw, 96px);
       font-weight: 800;
       line-height: 0.95;
-      letter-spacing: -3px;
+      letter-spacing: -2px;
       color: #fff;
       margin-bottom: 12px;
       animation: fadeUp 0.7s ease both;
@@ -362,7 +362,7 @@
       font-size: clamp(32px, 4vw, 52px);
       font-weight: 800;
       color: #fff;
-      letter-spacing: -1.5px;
+      letter-spacing: -1px;
       line-height: 1.05;
       margin-bottom: 20px;
     }
@@ -709,13 +709,13 @@
 
       .nav-links {
         position: fixed;
-        top: 56px;
+        top: 80px;
         left: 0;
         right: auto;
         bottom: auto;
         width: 100%;
-        height: calc(100vh - 56px);
-        max-height: calc(100vh - 56px);
+        height: calc(100vh - 80px);
+        max-height: calc(100vh - 80px);
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -870,7 +870,7 @@
 <body>
 
 <nav class="site-nav">
-  <a href="#" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <a href="#" class="nav-logo"><img src="forensicator_logo.png" alt="Forensicator Logo" style="height: 60px;"></a>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
@@ -879,7 +879,7 @@
     <li><a href="#features">Features</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="walkthrough.html">Walkthrough</a></li>
+    <li><a href="https://opendocs.forensicator.io">Docs</a></li>
     <li><a href="enterprise.html">Forensicator Enterprise</a></li>
     <li><a href="changelog.html">Changelog</a></li>
     <li><a href="https://github.com/Johnng007/Live-Forensicator" class="nav-cta">GitHub ↗</a></li>
@@ -924,8 +924,8 @@
     <a href="enterprise.html" class="btn btn-secondary">
       Forensicator Enterprise
     </a>
-    <a href="walkthrough.html" class="btn btn-secondary">
-      📖 Walkthrough
+    <a href="https://opendocs.forensicator.io" class="btn btn-secondary">
+      📖 Docs
     </a>
   </div>
 </div>
@@ -1176,7 +1176,7 @@
   <div class="cta-row">
     <a href="https://github.com/Johnng007/Live-Forensicator" class="btn btn-primary">⭐ View on GitHub</a>
     <a href="enterprise.html" class="btn btn-secondary">Forensicator Enterprise</a>
-    <a href="walkthrough.html" class="btn btn-secondary">📖 Walkthrough</a>
+    <a href="https://opendocs.forensicator.io" class="btn btn-secondary">📖 Docs</a>
   </div>
 </div>
 
@@ -1187,7 +1187,7 @@
   </div>
   <div class="footer-links">
     <a href="https://github.com/Johnng007/Live-Forensicator" target="_blank">GitHub</a>
-    <a href="walkthrough.html">Walkthrough</a>
+    <a href="https://opendocs.forensicator.io">Docs</a>
     <a href="changelog.html">Changelog</a>
     <a href="https://github.com/Johnng007/Live-Forensicator/releases" target="_blank">Releases</a>
   </div>

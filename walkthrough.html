@@ -55,7 +55,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 40px;
-      height: 56px;
+      height: 80px;
       background: rgba(8,11,15,0.95);
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(12px);
@@ -132,13 +132,13 @@
 
       .nav-links {
         position: fixed;
-        top: 56px;
+        top: 80px;
         left: 0;
         right: auto;
         bottom: auto;
         width: 100%;
-        height: calc(100vh - 56px);
-        max-height: calc(100vh - 56px);
+        height: calc(100vh - 80px);
+        max-height: calc(100vh - 80px);
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -208,14 +208,14 @@
       grid-template-columns: 260px 1fr;
       max-width: 1200px;
       margin: 0 auto;
-      padding-top: 56px;
+      padding-top: 80px;
       min-height: 100vh;
     }
 
     /* SIDEBAR */
     .sidebar {
       position: sticky;
-      top: 56px;
+      top: 80px;
       height: calc(100vh - 56px);
       overflow-y: auto;
       border-right: 1px solid var(--border);
@@ -626,7 +626,7 @@
 
 <!-- NAV -->
 <nav class="site-nav">
-  <a href="index.html" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <a href="index.html" class="nav-logo"><img src="forensicator_logo.png" alt="Forensicator Logo" style="height: 60px;"></a>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
@@ -635,7 +635,7 @@
     <li><a href="index.html#features">Features</a></li>
     <li><a href="index.html#usage">Usage</a></li>
     <li><a href="index.html#roadmap">Roadmap</a></li>
-    <li><a href="walkthrough.html" class="active">Walkthrough</a></li>
+    <li><a href="https://opendocs.forensicator.io">Docs</a></li>
     <li><a href="enterprise.html">Forensicator Enterprise</a></li>
     <li><a href="changelog.html">Changelog</a></li>
     <li><a href="https://github.com/Johnng007/Live-Forensicator" class="nav-cta">GitHub ↗</a></li>

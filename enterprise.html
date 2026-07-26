@@ -71,8 +71,8 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 40px;
-      height: 56px;
-      background: rgba(8,11,15,0.9);
+      height: 80px;
+      background: rgba(8,11,15,0.95);
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(12px);
     }
@@ -178,7 +178,7 @@
       font-size: clamp(36px, 8vw, 80px);
       font-weight: 800;
       line-height: 0.95;
-      letter-spacing: -3px;
+      letter-spacing: -2px;
       color: #fff;
       margin-bottom: 12px;
       animation: fadeUp 0.7s ease both;
@@ -277,7 +277,7 @@
       font-size: clamp(28px, 4vw, 48px);
       font-weight: 800;
       color: #fff;
-      letter-spacing: -1.5px;
+      letter-spacing: -1px;
       line-height: 1.05;
       margin-bottom: 20px;
     }
@@ -904,13 +904,13 @@
 
       .nav-links {
         position: fixed;
-        top: 56px;
+        top: 80px;
         left: 0;
         right: auto;
         bottom: auto;
         width: 100%;
-        height: calc(100vh - 56px);
-        max-height: calc(100vh - 56px);
+        height: calc(100vh - 80px);
+        max-height: calc(100vh - 80px);
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -931,8 +931,8 @@
 
       @supports (height: 100dvh) {
         .nav-links {
-          height: calc(100dvh - 56px);
-          max-height: calc(100dvh - 56px);
+          height: calc(100dvh - 80px);
+          max-height: calc(100dvh - 80px);
         }
       }
 
@@ -993,14 +993,14 @@
 
 <!-- NAV -->
 <nav class="site-nav">
-  <a href="index.html" class="nav-logo">Live<span>/</span>Forensicator</a>
+  <a href="index.html" class="nav-logo"><img src="forensicator_logo.png" alt="Forensicator Logo" style="height: 60px;"></a>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-controls="navLinks" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
   <ul class="nav-links" id="navLinks">
     <li><a href="index.html#platforms">Platforms</a></li>
     <li><a href="index.html#features">Features</a></li>
-    <li><a href="walkthrough.html">Walkthrough</a></li>
+    <li><a href="https://opendocs.forensicator.io">Docs</a></li>
     <li><a href="enterprise.html" class="active">Enterprise</a></li>
     <li><a href="changelog.html">Changelog</a></li>
     <li><a href="#demo-form" class="nav-cta">Request Demo</a></li>
@@ -1021,7 +1021,7 @@
 
   <div class="cta-row">
     <a href="#demo-form" class="btn btn-primary">Request a Demo</a>
-    <a href="mailto:sales@forensicator.io" class="btn btn-secondary">Contact Sales</a>
+    <a href="mailto:hello@forensicator.io" class="btn btn-secondary">Contact Sales</a>
   </div>
 </div>
 
@@ -1450,7 +1450,7 @@
   <p>See how Forensicator can help your organization accelerate investigations and improve incident response operations.</p>
   <div class="cta-row">
     <a href="#demo-form" class="btn btn-primary">Request a Demo</a>
-    <a href="mailto:sales@forensicator.io" class="btn btn-secondary">Contact Sales</a>
+    <a href="mailto:hello@forensicator.io" class="btn btn-secondary">Contact Sales</a>
   </div>
 </div>
 
